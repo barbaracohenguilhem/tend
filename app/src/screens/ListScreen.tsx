@@ -21,6 +21,8 @@ interface Props {
   weekSel: number;
   ownerId: OwnerId;
   pendingCount: number;
+  pendingLabel: string;
+  connectionError?: string;
   pendingReviewCount: number;
   anim: Anim | null;
   onMode: (m: Mode) => void;
@@ -103,7 +105,7 @@ export function ListScreen(p: Props) {
             <h1 className="h1">{carla ? 'Today.' : 'Handoff.'}</h1>
             <div className="subline-row">
               <span>{dateLine()}</span><span>·</span><span>{openLine}</span>
-              {p.pendingCount > 0 && <span className="pending-pill" onClick={p.onSettings}>{p.pendingCount} waiting for relay</span>}
+              {p.pendingCount > 0 && <span className="pending-pill" onClick={p.onSettings}>{p.pendingCount} {p.pendingLabel}</span>}
             </div>
             <div className="chips">
               {chips.map(c => (
@@ -151,6 +153,7 @@ export function ListScreen(p: Props) {
       </div>
 
       {p.loading && <div className="card-note">Loading your Smart Inbox…</div>}
+      {!p.loading && p.connectionError && rowCount === 0 && <div className="card-note" onClick={p.onSettings} style={{ cursor: 'pointer' }}>{p.connectionError}</div>}
 
       {rowCount > 0 && (
         <TaskList groups={groups} anim={p.anim} onComplete={p.onComplete} onSnooze={p.onSnooze} onOpen={p.onOpen} onReorder={p.onReorder} />

@@ -236,7 +236,7 @@ export default function App() {
           <ListScreen
             screen={screen as 'today' | 'week' | 'owner'} mode={mode} headerAura={settings.headerAura} loading={inbox.loading}
             tasks={tasks} open={open} filter={filter} weekSel={weekSel} ownerId={ownerId}
-            pendingCount={inbox.pending.length} pendingReviewCount={pendingReview.length} anim={anim}
+            pendingCount={inbox.pending.length} pendingLabel={inbox.source === 'relay' ? 'waiting for relay' : 'waiting to sync'} connectionError={inbox.connection.status === 'error' ? inbox.connection.message : undefined} pendingReviewCount={pendingReview.length} anim={anim}
             onMode={setMode} onFilter={setFilter} onWeekSel={setWeekSel} onFocus={startFocus}
             onSettings={() => setSettingsOpen(true)} onPeople={() => goTo('people')}
             onComplete={complete} onSnooze={id => snooze(id, 1, 'Moved to tomorrow')} onOpen={openDetail} onReorder={reorder}
@@ -279,7 +279,7 @@ export default function App() {
 
         {sheetOpen && <QuickAddSheet mode={mode} defaultDue={screen === 'week' ? weekSel : null} onAdd={addTask} onClose={() => setSheetOpen(false)} />}
         {settingsOpen && (
-          <SettingsSheet settings={settings} pendingCount={inbox.pending.length} onUpdate={updateSettings}
+          <SettingsSheet settings={settings} source={inbox.source} connection={inbox.connection} pendingCount={inbox.pending.length} onUpdate={updateSettings}
             onFlush={() => { inbox.flush(true); }} onReload={() => { inbox.reload(); show('Reloading…'); }} onClose={() => setSettingsOpen(false)} />
         )}
 
