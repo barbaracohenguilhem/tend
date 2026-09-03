@@ -1,0 +1,9 @@
+[build]
+  base = "app"
+  command = "npm run vercel-build"
+  publish = "dist"
+  environment = { VITE_API_BASE = "/api" }
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
