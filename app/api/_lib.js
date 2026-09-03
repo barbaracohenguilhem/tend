@@ -11,7 +11,11 @@ const PEOPLE = [
   { id: 'luiz', name: 'Luiz Eduardo Greco', keys: ['luiz', 'eduardo'] },
   { id: 'alessandra', name: 'Alessandra Lopes', keys: ['alessandra'] },
   { id: 'nicola', name: 'Nicola', keys: ['nicola'] },
+  { id: 'eugenia', name: 'Eugenia Galdo', keys: ['eugenia', 'galdo'] },
+  { id: 'francesca', name: 'Francesca', keys: ['francesca'] },
+  { id: 'yevgeniy', name: 'Yevgeniy Davidenko', keys: ['yevgeniy', 'davidenko'] },
 ];
+export const DEACTIVATED = ['bl@carlaguilhem.com', 'imb@carlaguilhem.com'];
 const PRIORITIES = ['High', 'Medium', 'Low'];
 const REVIEWS = ['Pending review', 'Approved', 'Changes requested', 'Barbara to handle'];
 

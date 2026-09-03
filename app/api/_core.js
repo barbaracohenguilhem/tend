@@ -1,5 +1,5 @@
 // Platform-neutral request handling for the tend API. Vercel (api/) and Netlify (netlify/functions/) both wrap this.
-import { DATABASE_ID, addComment, appendFile, createProperties, listComments, notion, pageToItem, patchToProperties, uploadFile } from './_lib.js';
+import { DATABASE_ID, DEACTIVATED, addComment, appendFile, createProperties, listComments, notion, pageToItem, patchToProperties, uploadFile } from './_lib.js';
 
 /** @returns {{status:number, body:object}} */
 export async function handle({ method, path, headers, body, query, raw }) {
@@ -10,6 +10,7 @@ export async function handle({ method, path, headers, body, query, raw }) {
   const domain = (process.env.ALLOWED_DOMAIN || 'carlaguilhem.com').toLowerCase();
   if (get('x-relay-key').toUpperCase() !== password.toUpperCase()) return { status: 401, body: { error: 'Wrong team password.' } };
   if (!get('x-user').toLowerCase().endsWith('@' + domain)) return { status: 401, body: { error: `Only @${domain} addresses can use this app.` } };
+  if (DEACTIVATED.includes(get('x-user').toLowerCase())) return { status: 401, body: { error: 'This account is deactivated.' } };
 
   const route = path.replace(/\/+$/, '').replace(/^.*\/api\/smart-inbox/, '') || '/';
   try {

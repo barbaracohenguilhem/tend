@@ -1,4 +1,4 @@
-export type OwnerId = 'carla' | 'fernanda' | 'luiz' | 'alessandra' | 'nicola' | 'none';
+export type OwnerId = 'carla' | 'fernanda' | 'luiz' | 'alessandra' | 'nicola' | 'eugenia' | 'francesca' | 'yevgeniy' | 'none';
 export type Mode = 'carla' | 'barbara';
 export type Priority = 'High' | 'Medium' | 'Low';
 export type Review = 'Pending review' | 'Approved' | 'Changes requested' | 'Barbara to handle';

@@ -15,7 +15,7 @@ import { HomeScreen } from './screens/HomeScreen';
 import { BoardScreen, type Bucket } from './screens/BoardScreen';
 import { CalendarScreen } from './screens/CalendarScreen';
 import { hasApi, postComment } from './lib/api';
-import { ownerFor, roleFor } from './lib/auth';
+import { nameFor, ownerFor, roleFor } from './lib/auth';
 import { DoneScreen } from './screens/DoneScreen';
 import { FocusScreen } from './screens/FocusScreen';
 import { ListScreen } from './screens/ListScreen';
@@ -70,7 +70,7 @@ function InboxApp({ session, onSignOut }: { session: Session; onSignOut: () => v
   const { toast, show, hide } = useToast();
   const role = roleFor(session.email);
   const myOwner: OwnerId | null = role === 'carla' ? 'carla' : role === 'team' ? ownerFor(session.email) : null;
-  const myName = role === 'carla' ? 'Carla' : role === 'barbara' ? 'Barbara' : myOwner ? person(myOwner).short : session.email.split('@')[0];
+  const myName = nameFor(session.email);
   const [mode, setModeState] = useState<Mode>(() => readValue<Mode>('mode', role === 'barbara' ? 'barbara' : 'carla'));
   useEffect(() => { writeJson('mode', mode); }, [mode]);
   const inbox = useInbox(settings, 'carla', show);
