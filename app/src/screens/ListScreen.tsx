@@ -3,7 +3,7 @@ import { people, person } from '../lib/people';
 import { sortTasks } from '../lib/sort';
 import type { Mode, OwnerId, Task } from '../lib/types';
 import { Avatar } from '../components/Avatar';
-import { BackIcon, FocusIcon } from '../components/Icons';
+import { BackIcon, FocusIcon, PeopleIcon } from '../components/Icons';
 import { Logo } from '../components/Logo';
 import { SecondaryRow, TaskList, type Anim, type Group } from '../components/TaskList';
 
@@ -25,6 +25,7 @@ interface Props {
   connectionError?: string;
   pendingReviewCount: number;
   anim: Anim | null;
+  showPeople?: boolean;
   onMode: (m: Mode) => void;
   onFilter: (f: OwnerId | 'all') => void;
   onWeekSel: (o: number) => void;
@@ -95,6 +96,7 @@ export function ListScreen(p: Props) {
             <div className="hdr">
               <Logo onClick={p.onSettings} />
               <div className="hdr-right">
+                {p.showPeople && <div className="icon-btn sm" onClick={p.onPeople} aria-label="People"><PeopleIcon /></div>}
                 <div className="icon-btn sm" onClick={p.onFocus} aria-label="Focus mode"><FocusIcon /></div>
               </div>
             </div>

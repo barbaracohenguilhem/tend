@@ -12,6 +12,8 @@ import { useSettings } from './store/useSettings';
 import { useToast } from './store/useToast';
 import { DetailScreen, type Decision, type Forward } from './screens/DetailScreen';
 import { HomeScreen } from './screens/HomeScreen';
+import { BoardScreen, type Bucket } from './screens/BoardScreen';
+import { CalendarScreen } from './screens/CalendarScreen';
 import { hasApi, postComment } from './lib/api';
 import { ownerFor, roleFor } from './lib/auth';
 import { DoneScreen } from './screens/DoneScreen';
@@ -265,7 +267,14 @@ function InboxApp({ session, onSignOut }: { session: Session; onSignOut: () => v
   };
 
   const isList = screen === 'today' || screen === 'week' || screen === 'owner';
-  const showTabs = (isList || screen === 'home' || screen === 'people' || screen === 'review') && !detailId;
+  const showTabs = (isList || screen === 'home' || screen === 'board' || screen === 'calendar' || screen === 'people' || screen === 'review') && !detailId;
+  const moveTo = (id: string, to: Bucket) => {
+    const t = find(id); if (!t) return;
+    lastAction.current = { type: 'snooze', id, prev: { due: t.due, time: t.time ?? null } };
+    const due = to === 'none' ? null : to === 'today' ? iso(today()) : to === 'tomorrow' ? iso(addDays(1)) : iso(addDays(7));
+    patch(id, { due, time: null });
+    show(to === 'none' ? 'Date removed' : `Moved to ${to === 'later' ? 'next week' : to}`, true);
+  };
   const fi = Math.min(focusIdx, Math.max(0, focusQueue.length - 1));
   const completedCount = tasks.filter(t => t.completed).length;
 
@@ -277,12 +286,14 @@ function InboxApp({ session, onSignOut }: { session: Session; onSignOut: () => v
         {screen === 'home' && (
           <HomeScreen role={role} name={myName} myOwner={myOwner} tasks={tasks} onOpen={openDetail} onSeeAll={() => { setFilter('all'); goTo('today'); }} onSettings={() => setSettingsOpen(true)} />
         )}
+        {screen === 'board' && <BoardScreen role={role} myOwner={myOwner} tasks={tasks} onMove={moveTo} onOpen={openDetail} onSettings={() => setSettingsOpen(true)} />}
+        {screen === 'calendar' && <CalendarScreen role={role} myOwner={myOwner} tasks={tasks} onOpen={openDetail} onSettings={() => setSettingsOpen(true)} />}
         {isList && (
           <ListScreen
             screen={screen as 'today' | 'week' | 'owner'} mode={mode} headerAura={settings.headerAura} loading={inbox.loading}
             tasks={tasks} open={open} filter={filter} weekSel={weekSel} ownerId={ownerId}
             pendingCount={inbox.pending.length} pendingLabel={inbox.source === 'relay' ? 'waiting for relay' : 'waiting to sync'} connectionError={inbox.connection.status === 'error' ? inbox.connection.message : undefined} pendingReviewCount={pendingReview.length} anim={anim}
-            onMode={setMode} onFilter={setFilter} onWeekSel={setWeekSel} onFocus={startFocus}
+            showPeople={role !== 'team'} onMode={setMode} onFilter={setFilter} onWeekSel={setWeekSel} onFocus={startFocus}
             onSettings={() => setSettingsOpen(true)} onPeople={() => goTo('people')}
             onComplete={complete} onSnooze={id => snooze(id, 1, 'Moved to tomorrow')} onOpen={openDetail} onReorder={reorder}
             onAdd={() => setSheetOpen(true)}

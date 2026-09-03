@@ -2,7 +2,7 @@ export type OwnerId = 'carla' | 'fernanda' | 'luiz' | 'alessandra' | 'nicola' | 
 export type Mode = 'carla' | 'barbara';
 export type Priority = 'High' | 'Medium' | 'Low';
 export type Review = 'Pending review' | 'Approved' | 'Changes requested' | 'Barbara to handle';
-export type Screen = 'home' | 'today' | 'week' | 'owner' | 'people' | 'review' | 'focus' | 'done';
+export type Screen = 'home' | 'today' | 'board' | 'calendar' | 'week' | 'owner' | 'people' | 'review' | 'focus' | 'done';
 
 /** One Smart Inbox item — mirrors the relay's GET /smart-inbox shape (see sync-spec.md). */
 export interface Task {
