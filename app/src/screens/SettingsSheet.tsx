@@ -10,6 +10,8 @@ interface Props {
   onFlush: () => void;
   onReload: () => void;
   onClose: () => void;
+  email: string;
+  onSignOut: () => void;
 }
 
 function ago(ts?: number): string {
@@ -19,7 +21,7 @@ function ago(ts?: number): string {
 }
 
 /** Sync settings — the in-app equivalent of the design tool's "Tweaks" panel. */
-export function SettingsSheet({ settings, source, connection, pendingCount, onUpdate, onFlush, onReload, onClose }: Props) {
+export function SettingsSheet({ settings, source, connection, pendingCount, onUpdate, onFlush, onReload, onClose, email, onSignOut }: Props) {
   const notion = source === 'notion';
   const canSend = notion || !!settings.relayUrl;
   return (
@@ -28,6 +30,13 @@ export function SettingsSheet({ settings, source, connection, pendingCount, onUp
       <div className="sheet scroll">
         <div className="handle" />
         <div className="settings-title">Sync</div>
+        <div className="field">
+          <label className="field-label">Signed in</label>
+          <div className="signed-in-row">
+            <span className="field-help">{email}</span>
+            <div className="btn btn-white btn-sm" onClick={onSignOut}>Sign out</div>
+          </div>
+        </div>
 
         {notion && (
           <div className="field">
