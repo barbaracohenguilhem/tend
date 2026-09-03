@@ -19,9 +19,25 @@ On the iPhone: open the URL in Safari → Share → **Add to Home Screen**. It l
 status bar and home indicator handled via safe-area insets. On a desktop browser it renders inside the
 402×874 iPhone frame from the design so it can be compared against the mockup.
 
+## Publishing as a claude.ai page (the way it is deployed today)
+
+```bash
+npm run build:artifact     # writes dist/tend-artifact.html — one self-contained HTML fragment
+```
+
+Publish that file as a claude.ai Artifact with the `mcp` capability declared for the Notion connector
+(tools `notion-query-data-sources`, `notion-update-page`, `notion-create-pages`). Inside claude.ai the page
+talks to the viewer's own Notion connection — no relay, no token, nothing to host. The page is private to the
+account that published it until it is shared from its share menu. On the iPhone, open the link in Safari and
+use Share → Add to Home Screen.
+
+Live page: https://claude.ai/code/artifact/d568c62e-8e2a-48a5-a0ed-8b1796658d82
+
 ## Data and sync
 
-The app never talks to Notion directly — it reads and writes through the relay described in
+Inside claude.ai the store (`src/store/useInbox.ts`, `src/store/notion.ts`) queries the Smart Inbox data
+source directly (rows mode, first 100 open items, polled every 60 s) and writes property updates and new pages
+back through the connector. Self-hosted, it instead reads and writes through the relay described in
 `../project/sync-spec.md` (n8n, or the same shape in Make/Zapier).
 
 Tap the **tend** logo on any screen (or the "n waiting for relay" pill) to open **Sync** settings:
