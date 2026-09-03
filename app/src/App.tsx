@@ -3,14 +3,17 @@ import { TabBar } from './components/TabBar';
 import { Toast } from './components/Toast';
 import type { Anim } from './components/TaskList';
 import { addDays, dayOffset, dueLabel, iso, today } from './lib/dates';
-import { ownerIds } from './lib/people';
+import { ownerIds, person } from './lib/people';
 import { cycleIn, sortTasks } from './lib/sort';
 import { readValue, writeJson } from './lib/storage';
 import type { Mode, OwnerId, Priority, Review, Screen, Task, TaskPatch } from './lib/types';
 import { useInbox } from './store/useInbox';
 import { useSettings } from './store/useSettings';
 import { useToast } from './store/useToast';
-import { DetailScreen } from './screens/DetailScreen';
+import { DetailScreen, type Decision, type Forward } from './screens/DetailScreen';
+import { HomeScreen } from './screens/HomeScreen';
+import { hasApi, postComment } from './lib/api';
+import { ownerFor, roleFor } from './lib/auth';
 import { DoneScreen } from './screens/DoneScreen';
 import { FocusScreen } from './screens/FocusScreen';
 import { ListScreen } from './screens/ListScreen';
@@ -63,13 +66,16 @@ export default function App() {
 function InboxApp({ session, onSignOut }: { session: Session; onSignOut: () => void }) {
   const { settings, update: updateSettings } = useSettings();
   const { toast, show, hide } = useToast();
-  const [mode, setModeState] = useState<Mode>(() => readValue<Mode>('mode', session.email.split('@')[0].toLowerCase().startsWith('barbara') ? 'barbara' : 'carla'));
+  const role = roleFor(session.email);
+  const myOwner: OwnerId | null = role === 'carla' ? 'carla' : role === 'team' ? ownerFor(session.email) : null;
+  const myName = role === 'carla' ? 'Carla' : role === 'barbara' ? 'Barbara' : myOwner ? person(myOwner).short : session.email.split('@')[0];
+  const [mode, setModeState] = useState<Mode>(() => readValue<Mode>('mode', role === 'barbara' ? 'barbara' : 'carla'));
   useEffect(() => { writeJson('mode', mode); }, [mode]);
-  const inbox = useInbox(settings, mode, show);
+  const inbox = useInbox(settings, 'carla', show);
   const { tasks, patch } = inbox;
 
-  const [screen, setScreen] = useState<Screen>('today');
-  const [filter, setFilter] = useState<OwnerId | 'all'>('all');
+  const [screen, setScreen] = useState<Screen>('home');
+  const [filter, setFilter] = useState<OwnerId | 'all'>(role === 'team' && myOwner ? myOwner : 'all');
   const [weekSel, setWeekSel] = useState(0);
   const [ownerId, setOwnerId] = useState<OwnerId>('carla');
   const [detailId, setDetailId] = useState<string | null>(null);
@@ -185,17 +191,30 @@ function InboxApp({ session, onSignOut }: { session: Session; onSignOut: () => v
     inbox.rank(ranks);
   };
 
+  // ---- decisions (Carla / Barbara) and forwarding
+  const say = (id: string, text: string) => { if (hasApi && !id.startsWith('local-')) postComment(id, myName, text).catch(() => undefined); };
+  const decide = (d: Decision) => {
+    if (!detail) return;
+    const id = detail.id;
+    if (d.kind === 'approve') { setReview(id, 'Approved'); say(id, 'Approved ✅'); setDetailId(null); }
+    if (d.kind === 'reject') { setReview(id, 'Changes requested', d.reason || ''); say(id, `Rejected ❌ — ${d.reason || ''}`); setDetailId(null); }
+    if (d.kind === 'resolved') { lastAction.current = { type: 'complete', id }; patch(id, { completed: true, resolvedBy: 'Carla' }); say(id, 'Done — I handled this myself.'); show('Marked as done by you', true); setDetailId(null); checkAllDone(); }
+    if (d.kind === 'complete') { lastAction.current = { type: 'complete', id }; patch(id, { completed: true, resolvedBy: role === 'carla' ? 'Carla' : 'Barbara' }); say(id, 'Completed ✔'); show('Completed', true); setDetailId(null); checkAllDone(); }
+    if (d.kind === 'reopen') { patch(id, { completed: false, resolvedBy: null }); show('Reopened'); }
+  };
+  const forward = (f: Forward) => {
+    if (!detail) return;
+    const to = person(f.owner);
+    const p: TaskPatch = { owner: f.owner, priority: f.priority };
+    if (f.due !== null) { p.due = iso(addDays(f.due)); p.time = null; }
+    patch(detail.id, p);
+    say(detail.id, `Forwarded to ${to.short}${f.priority ? ` · ${f.priority} priority` : ''}${f.due !== null ? ` · due ${dueLabel({ due: p.due ?? null, time: null })}` : ''}${f.note ? ` — ${f.note}` : ''}`);
+    show(`Forwarded to ${to.short}`, true);
+    setDetailId(null);
+  };
+
   // ---- detail
   const detail = find(detailId);
-  const detailPrimary = () => {
-    if (!detail) return;
-    if (detail.completed) { patch(detail.id, { completed: false }); show('Reopened'); return; }
-    lastAction.current = { type: 'complete', id: detail.id };
-    setDetailId(null);
-    patch(detail.id, { completed: true });
-    show('Completed', true);
-    checkAllDone();
-  };
 
   // ---- focus
   const startFocus = () => {
@@ -246,7 +265,7 @@ function InboxApp({ session, onSignOut }: { session: Session; onSignOut: () => v
   };
 
   const isList = screen === 'today' || screen === 'week' || screen === 'owner';
-  const showTabs = (isList || screen === 'people' || screen === 'review') && !detailId;
+  const showTabs = (isList || screen === 'home' || screen === 'people' || screen === 'review') && !detailId;
   const fi = Math.min(focusIdx, Math.max(0, focusQueue.length - 1));
   const completedCount = tasks.filter(t => t.completed).length;
 
@@ -255,6 +274,9 @@ function InboxApp({ session, onSignOut }: { session: Session; onSignOut: () => v
       <div className="phone">
         <PhoneChrome />
 
+        {screen === 'home' && (
+          <HomeScreen role={role} name={myName} myOwner={myOwner} tasks={tasks} onOpen={openDetail} onSeeAll={() => { setFilter('all'); goTo('today'); }} onSettings={() => setSettingsOpen(true)} />
+        )}
         {isList && (
           <ListScreen
             screen={screen as 'today' | 'week' | 'owner'} mode={mode} headerAura={settings.headerAura} loading={inbox.loading}
@@ -280,16 +302,16 @@ function InboxApp({ session, onSignOut }: { session: Session; onSignOut: () => v
           <PeopleScreen tasks={tasks} openCount={open.length} onOpenOwner={id => { setOwnerId(id); goTo('owner'); }} onSettings={() => setSettingsOpen(true)} />
         )}
 
-        {showTabs && <TabBar screen={screen} mode={mode} reviewCount={reviewList.length} onGo={goTo} onAdd={() => setSheetOpen(true)} />}
+        {showTabs && <TabBar screen={screen} mode={mode} role={role} reviewCount={reviewList.length} onGo={goTo} onAdd={() => setSheetOpen(true)} />}
 
         {detail && (
           <DetailScreen
-            task={detail} onClose={() => setDetailId(null)}
+            task={detail} role={role} me={myName} onClose={() => setDetailId(null)}
             onCycleOwner={() => patch(detail.id, { owner: cycleIn(ownerIds, detail.owner) })}
             onCyclePriority={() => patch(detail.id, { priority: cycleIn(prioOpts, detail.priority ?? 'Low') })}
             onCycleDue={() => { const cur = dayOffset(detail); const nx = cycleIn(dueOpts, dueOpts.includes(cur) ? cur : 7); patch(detail.id, { due: nx === null ? null : iso(addDays(nx)) }); }}
             onSnooze={to => snooze(detail.id, to, to === 'later' ? 'Moved to later today' : to === 1 ? 'Moved to tomorrow' : 'Moved to next week', true)}
-            onPrimary={detailPrimary} notify={show}
+            onDecide={decide} onForward={forward} notify={show}
           />
         )}
         {screen === 'focus' && (

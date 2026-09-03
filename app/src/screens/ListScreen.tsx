@@ -95,14 +95,10 @@ export function ListScreen(p: Props) {
             <div className="hdr">
               <Logo onClick={p.onSettings} />
               <div className="hdr-right">
-                <div className="mode-switch">
-                  <div className={`mode-opt${carla ? ' is-active' : ''}`} onClick={() => p.onMode('carla')}>Carla</div>
-                  <div className={`mode-opt${!carla ? ' is-active' : ''}`} onClick={() => p.onMode('barbara')}>Barbara</div>
-                </div>
                 <div className="icon-btn sm" onClick={p.onFocus} aria-label="Focus mode"><FocusIcon /></div>
               </div>
             </div>
-            <h1 className="h1">{carla ? 'Today.' : 'Handoff.'}</h1>
+            <h1 className="h1">Today.</h1>
             <div className="subline-row">
               <span>{dateLine()}</span><span>·</span><span>{openLine}</span>
               {p.pendingCount > 0 && <span className="pending-pill" onClick={p.onSettings}>{p.pendingCount} {p.pendingLabel}</span>}

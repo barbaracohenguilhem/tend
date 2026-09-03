@@ -25,3 +25,21 @@ export function checkCredentials(emailRaw: string, passwordRaw: string): string 
   if (password.toUpperCase() !== TEAM_PASSWORD) return 'Wrong password.';
   return null;
 }
+
+import type { OwnerId, Role } from './types';
+import { people } from './people';
+
+/** Who is signed in, decided by the address: carla@ → Carla, barbara@/design@ → Barbara, anyone else → team. */
+export function roleFor(email: string): Role {
+  const local = email.split('@')[0].toLowerCase();
+  if (local.startsWith('carla')) return 'carla';
+  if (local.startsWith('barbara') || local === 'design' || local === 'bc') return 'barbara';
+  return 'team';
+}
+
+/** Team member → the Owner they own tasks as, matched on the first name in the address (fernanda@ → Fernanda). */
+export function ownerFor(email: string): OwnerId | null {
+  const local = email.split('@')[0].toLowerCase().replace(/[^a-z]/g, ' ');
+  for (const p of people) if (p.id !== 'none' && p.keys.some(k => local.includes(k))) return p.id;
+  return null;
+}

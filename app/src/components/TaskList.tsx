@@ -5,6 +5,7 @@ import type { Person, Task } from '../lib/types';
 import { Avatar } from './Avatar';
 import { CheckIcon, GripIcon, MoonIcon } from './Icons';
 import { ReviewPill } from './ReviewPill';
+import { DueChip } from './TaskTags';
 
 export interface Group { key: string; person: Person | null; rows: Task[] }
 export interface Anim { id: string; type: 'complete' | 'snooze' }
@@ -113,7 +114,7 @@ export function TaskList({ groups, anim, onComplete, onSnooze, onOpen, onReorder
                       <div className="under-later"><span>Tomorrow</span><MoonIcon /></div>
                     </div>
                     <div className={`row-swipe${swiping ? ' is-moving' : ''}${a === 'complete' ? ' is-completing' : ''}${a === 'snooze' ? ' is-snoozing' : ''}`} style={swipeStyle}>
-                      <div className="row"
+                      <div className={`row${d !== null && d < 0 ? ' is-overdue' : d === 0 ? ' is-today' : ''}`}
                         onPointerDown={e => down(e, t.id, g.key)} onPointerMove={e => move(e, t.id)}
                         onPointerUp={e => up(e, t.id)} onPointerCancel={e => cancel(e, t.id)}>
                         <div data-check="1" className={`check${checked ? ' is-checked' : ''}${a === 'complete' ? ' is-glow' : ''}`}>
@@ -123,7 +124,8 @@ export function TaskList({ groups, anim, onComplete, onSnooze, onOpen, onReorder
                           <div className="row-title">{t.action}</div>
                           <div className="row-meta">
                             <span className="dot" style={{ background: catColor(t.category) }} />
-                            <span className="row-meta-text">{t.from}{d !== null ? ' · ' + dueLabel(t) : ''}</span>
+                            <span className="row-meta-text">{t.from}{t.project && t.project !== 'Sem projeto' ? ' · ' + t.project : ''}</span>
+                            <DueChip task={t} />
                             {t.priority === 'High' && <span className="badge-high">High</span>}
                             <ReviewPill review={t.review} />
                           </div>
