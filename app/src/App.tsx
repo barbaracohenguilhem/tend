@@ -10,7 +10,7 @@ import type { Mode, OwnerId, Review, Screen, Task, TaskPatch } from './lib/types
 import { useInbox } from './store/useInbox';
 import { useSettings } from './store/useSettings';
 import { useToast } from './store/useToast';
-import { DetailScreen, type Decision, type Forward } from './screens/DetailScreen';
+import { DetailScreen, type Decision, type Forward, type NewSubtask } from './screens/DetailScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { BoardScreen, type Bucket } from './screens/BoardScreen';
 import { CalendarScreen } from './screens/CalendarScreen';
@@ -213,6 +213,31 @@ function InboxApp({ session, onSignOut }: { session: Session; onSignOut: () => v
     setDetailId(null);
   };
 
+  const askCarla = (text: string) => {
+    if (!detail) return;
+    patch(detail.id, { teamReview: 'Requested', reviewRequest: text, requestedBy: myName, reviewReply: null });
+    say(detail.id, `Asked Carla to confirm: ${text}`);
+    show('Sent to Carla', true); setDetailId(null);
+  };
+  const answerRequest = (approved: boolean, reply: string) => {
+    if (!detail) return;
+    patch(detail.id, { teamReview: approved ? 'Approved' : 'Rejected', reviewReply: reply || (approved ? 'Approved' : '') });
+    say(detail.id, approved ? `Carla approved ✅${reply ? ' — ' + reply : ''}` : `Carla said no ❌ — ${reply}`);
+    show(approved ? 'Approved' : 'Answer sent', true); setDetailId(null);
+  };
+  const addSubtask = (sub: NewSubtask) => {
+    if (!detail) return;
+    const id = 'local-' + Date.now();
+    const task: Task = {
+      id, action: sub.title, subject: sub.title, from: myName, owner: sub.owner, priority: detail.priority, category: detail.category,
+      review: null, draft: null, summary: '', due: sub.due === null ? null : iso(addDays(sub.due)), time: null, completed: false, feedback: null, gmail: null,
+      project: detail.project ?? null, parentId: detail.id, ownerName: sub.ownerName,
+    };
+    lastAction.current = { type: 'add', id };
+    inbox.create(task, { ownerName: sub.ownerName, from: myName });
+    show(`Subtask added${sub.ownerName ? ` for ${sub.ownerName}` : ''}`, true);
+  };
+
   // ---- detail
   const detail = find(detailId);
 
@@ -254,12 +279,12 @@ function InboxApp({ session, onSignOut }: { session: Session; onSignOut: () => v
   const addTask = (d: NewTask) => {
     const id = 'local-' + Date.now();
     const task: Task = {
-      id, action: d.title, subject: d.title, from: carla ? 'Carla' : 'Barbara', owner: d.owner, priority: d.priority,
+      id, action: d.title, subject: d.title, from: myName, owner: d.owner, priority: d.priority,
       category: 'Action required', review: null, draft: null, summary: '', due: d.due === null ? null : iso(addDays(d.due)),
       time: d.time, completed: false, feedback: null, gmail: null,
     };
     lastAction.current = { type: 'add', id };
-    inbox.create(task);
+    inbox.create(task, { from: myName });
     setSheetOpen(false);
     show(`Added · ${dueLabel(task)}`, true);
   };
@@ -313,12 +338,12 @@ function InboxApp({ session, onSignOut }: { session: Session; onSignOut: () => v
           <PeopleScreen tasks={tasks} openCount={open.length} onOpenOwner={id => { setOwnerId(id); goTo('owner'); }} onSettings={() => setSettingsOpen(true)} />
         )}
 
-        {showTabs && <TabBar screen={screen} mode={mode} role={role} reviewCount={reviewList.length} onGo={goTo} onAdd={teamOnly ? null : () => setSheetOpen(true)} />}
+        {showTabs && <TabBar screen={screen} mode={mode} role={role} reviewCount={reviewList.length} onGo={goTo} onAdd={() => setSheetOpen(true)} />}
 
         {detail && (
           <DetailScreen
-            task={detail} role={role} me={myName} projects={projects} onClose={() => setDetailId(null)}
-            onPatch={p => patch(detail.id, p)}
+            task={detail} all={tasks} role={role} me={myName} myOwner={myOwner} projects={projects} onClose={() => setDetailId(null)} onOpen={openDetail}
+            onPatch={p => patch(detail.id, p)} onAskCarla={askCarla} onAnswerRequest={answerRequest} onAddSubtask={addSubtask}
             onSnooze={to => snooze(detail.id, to, to === 'later' ? 'Moved to later today' : to === 1 ? 'Moved to tomorrow' : 'Moved to next week', true)}
             onDecide={decide} onForward={forward} notify={show}
           />
@@ -331,7 +356,7 @@ function InboxApp({ session, onSignOut }: { session: Session; onSignOut: () => v
           <DoneScreen summary={`${completedCount} items completed · ${pendingReview.length} drafts still to review.`} onReview={() => goTo('review')} onToday={() => goTo('today')} />
         )}
 
-        {sheetOpen && <QuickAddSheet mode={mode} defaultDue={screen === 'week' ? weekSel : null} onAdd={addTask} onClose={() => setSheetOpen(false)} />}
+        {sheetOpen && <QuickAddSheet mode={mode} fixedOwner={teamOnly ? myOwner : null} defaultDue={screen === 'week' ? weekSel : null} onAdd={addTask} onClose={() => setSheetOpen(false)} />}
         {settingsOpen && (
           <SettingsSheet settings={settings} source={inbox.source} connection={inbox.connection} pendingCount={inbox.pending.length} onUpdate={updateSettings}
             email={session.email} onSignOut={() => { setSettingsOpen(false); onSignOut(); }}

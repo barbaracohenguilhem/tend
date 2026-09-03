@@ -1,9 +1,12 @@
 import { catColor } from '../lib/people';
 import { dayOffset, dueLabel } from '../lib/dates';
 import type { Task } from '../lib/types';
+import { isBlocked } from '../lib/weight';
 
 /** Category · project · due, as small chips. Due gets stronger the closer (or later) it is. */
-export function TaskTags({ task, compact }: { task: Task; compact?: boolean }) {
+export function TaskTags({ task, all, compact }: { task: Task; all?: Task[]; compact?: boolean }) {
+  const subs = all ? all.filter(x => x.parentId === task.id) : [];
+  const blocked = all ? isBlocked(task, all) : false;
   const d = dayOffset(task);
   const dueClass = d === null ? '' : d < 0 ? ' is-overdue' : d === 0 ? ' is-today' : d <= 2 ? ' is-soon' : '';
   return (
@@ -14,6 +17,11 @@ export function TaskTags({ task, compact }: { task: Task; compact?: boolean }) {
       {task.priority === 'High' && <span className="tag tag-high">High</span>}
       {task.priority === 'Medium' && <span className="tag tag-medium">Medium</span>}
       {task.priority === 'Low' && <span className="tag tag-low">Low</span>}
+      {task.teamReview === 'Requested' && <span className="tag tag-ask">Asked Carla</span>}
+      {task.teamReview === 'Approved' && <span className="tag tag-ok">Carla ✓</span>}
+      {task.teamReview === 'Rejected' && <span className="tag tag-no">Carla ✗</span>}
+      {blocked && <span className="tag tag-blocked">Waiting{task.waitingOn ? ` · ${task.waitingOn}` : ''}</span>}
+      {subs.length > 0 && <span className="tag">{subs.filter(x => x.completed).length}/{subs.length} subtasks</span>}
     </div>
   );
 }

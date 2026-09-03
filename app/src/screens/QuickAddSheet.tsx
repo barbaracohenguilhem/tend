@@ -11,6 +11,8 @@ export interface NewTask { title: string; due: number | null; time: string | nul
 
 interface Props {
   mode: Mode;
+  /** Fixed owner (team members always create for themselves) */
+  fixedOwner?: OwnerId | null;
   /** Day offset preselected by the screen (Week view selects its day) */
   defaultDue: number | null;
   onAdd: (t: NewTask) => void;
@@ -20,7 +22,7 @@ interface Props {
 const dueOpts: (number | null)[] = [0, 1, 2, 7, null];
 const prioOpts: Priority[] = ['High', 'Medium', 'Low'];
 
-export function QuickAddSheet({ mode, defaultDue, onAdd, onClose }: Props) {
+export function QuickAddSheet({ mode, fixedOwner, defaultDue, onAdd, onClose }: Props) {
   const [draft, setDraft] = useState('');
   const [dueOverride, setDueOverride] = useState<number | null | undefined>(undefined);
   const [ownerOverride, setOwnerOverride] = useState<OwnerId | null>(null);
@@ -31,7 +33,7 @@ export function QuickAddSheet({ mode, defaultDue, onAdd, onClose }: Props) {
   const p = parseDraft(draft, mode, today());
   const due = dueOverride !== undefined ? dueOverride : p.due !== undefined ? p.due : defaultDue;
   const dueParsed = p.due !== undefined || dueOverride !== undefined;
-  const owner: OwnerId = ownerOverride || p.owner || (mode === 'carla' ? 'carla' : 'none');
+  const owner: OwnerId = fixedOwner || ownerOverride || p.owner || (mode === 'carla' ? 'carla' : 'none');
   const ownerParsed = !!(ownerOverride || p.owner);
   const priority: Priority = prioOverride !== undefined ? prioOverride : p.priority || 'Medium';
   const prioParsed = !!(p.priority || prioOverride !== undefined);
@@ -53,7 +55,7 @@ export function QuickAddSheet({ mode, defaultDue, onAdd, onClose }: Props) {
           <div className={`sheet-chip${dueParsed ? ' is-active' : ''}`} onClick={() => setDueOverride(cycleIn(dueOpts, dueOpts.includes(due ?? null) && due !== undefined ? due : 7))}>
             <CalendarIcon size={14} /><span>{dueText}</span>
           </div>
-          <div className={`sheet-chip has-avatar${ownerParsed ? ' is-active' : ''}`} onClick={() => setOwnerOverride(cycleIn(ownerIds, owner))}>
+          <div className={`sheet-chip has-avatar${ownerParsed || fixedOwner ? ' is-active' : ''}`} onClick={() => { if (!fixedOwner) setOwnerOverride(cycleIn(ownerIds, owner)); }}>
             <Avatar person={op} size={18} fs={9} /><span>{op.short}</span>
           </div>
           <div className={`sheet-chip${prioParsed ? ' is-active' : ''}`} onClick={() => setPrioOverride(cycleIn(prioOpts, priority))}>

@@ -268,11 +268,11 @@ export function useInbox(settings: Settings, mode: Mode, notify: (text: string) 
     relay({ kind: 'update', id, patch: p });
   }, [relay, updateTask]);
 
-  const create = useCallback((task: Task) => {
+  const create = useCallback((task: Task, extra?: { ownerName?: string | null; from?: string | null }) => {
     created.current[task.id] = task;
     writeJson('created', created.current);
     setTasks(ts => [...ts, task]);
-    relay({ kind: 'create', id: task.id, action: task.action, owner: task.owner, due: task.due, priority: task.priority });
+    relay({ kind: 'create', id: task.id, action: task.action, owner: task.owner, due: task.due, priority: task.priority, parentId: task.parentId ?? null, ownerName: extra?.ownerName ?? null, from: extra?.from ?? null });
   }, [relay]);
 
   const remove = useCallback((id: string) => {

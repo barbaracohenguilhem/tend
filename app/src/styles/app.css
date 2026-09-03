@@ -406,3 +406,33 @@ input::placeholder, textarea::placeholder { color: #9A958C; }
 .project-add { display: flex; gap: 6px; width: 100%; margin-top: 4px; }
 .project-add .field-input { flex: 1; padding: 8px 12px; font-family: var(--font-sans); font-size: 13px; }
 .project-add button { font-family: var(--font-sans); border: 1px solid rgba(27,24,21,0.1); background: #fff; border-radius: 999px; cursor: pointer; }
+
+/* ---------- requests, structure, context ---------- */
+.request-card { margin-top: 16px; border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 10px; background: var(--warning-soft); }
+.request-card.is-approved { background: var(--success-soft); }
+.request-card.is-rejected { background: var(--danger-soft); }
+.request-text { font-size: 15px; line-height: 1.5; color: var(--ink); white-space: pre-wrap; }
+.request-reply { font-size: 14px; line-height: 1.5; color: var(--ink-soft); }
+.tag-ask { background: var(--warning-soft); color: var(--warning); }
+.tag-ok { background: var(--success-soft); color: var(--success); }
+.tag-no { background: var(--danger-soft); color: var(--danger); }
+.tag-blocked { background: var(--bone); color: var(--ink-mute); }
+.parent-link { font-size: 12px; color: var(--ink-mute); margin-bottom: 8px; cursor: pointer; }
+.struct-card { margin-top: 10px; background: #fff; border-radius: 16px; padding: 10px 14px; box-shadow: var(--shadow-xs); display: flex; flex-direction: column; gap: 8px; }
+.struct-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; cursor: pointer; font-size: 14px; color: var(--ink); }
+.struct-row.is-done .struct-title { text-decoration: line-through; color: var(--ink-faint); }
+.struct-row.is-external { color: var(--ink-soft); }
+.struct-title { flex: 1; min-width: 0; line-height: 1.35; }
+.struct-who { font-size: 12px; color: var(--ink-mute); flex: none; }
+.struct-x { font-size: 18px; color: var(--ink-faint); padding: 0 4px; flex: none; }
+.check.mini { width: 18px; height: 18px; }
+.struct-form { display: flex; flex-direction: column; gap: 8px; padding-top: 4px; }
+.struct-form .field-input { font-family: var(--font-sans); font-size: 14px; }
+.link-row { display: flex; gap: 6px; align-items: center; }
+.link-row .field-input { flex: 1; font-family: var(--font-sans); font-size: 13px; }
+.btn-big-soft { padding: 13px 0; font-size: 14px; }
+.home-context { font-size: 13px; line-height: 1.45; color: var(--ink-mute); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.home-ask { font-size: 13px; line-height: 1.45; color: var(--ink-soft); background: var(--warning-soft); border-radius: 10px; padding: 6px 10px; }
+.home-section.is-light .home-card { box-shadow: none; background: rgba(255,255,255,0.55); border: 1px dashed rgba(27,24,21,0.12); }
+.home-section.is-light .home-card-title { font-weight: 400; color: var(--ink-soft); }
+.kv-edit { flex-direction: column; align-items: stretch; gap: 8px; cursor: default; }

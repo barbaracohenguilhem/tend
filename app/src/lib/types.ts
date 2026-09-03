@@ -11,6 +11,8 @@ export interface Task {
   subject: string;
   from: string;
   owner: OwnerId;
+  /** Raw Owner text from Notion — shows people outside the team. */
+  ownerName?: string | null;
   priority: Priority | null;
   category: string;
   review: Review | null;
@@ -30,6 +32,17 @@ export interface Task {
   deliverable?: string | null;
   files?: Attachment[];
   voiceNotes?: Attachment[];
+  /** A team member asked Carla to confirm something about this task */
+  teamReview?: 'Requested' | 'Approved' | 'Rejected' | null;
+  reviewRequest?: string | null;
+  reviewReply?: string | null;
+  requestedBy?: string | null;
+  /** Free-text external dependency ("Fulana's answer about the flight") */
+  waitingOn?: string | null;
+  parentId?: string | null;
+  subtaskIds?: string[];
+  dependsOn?: string[];
+  blocks?: string[];
   /** ISO date (YYYY-MM-DD…) or null */
   due: string | null;
   /** HH:MM, optional */
@@ -54,11 +67,11 @@ export interface Person {
   keys: string[];
 }
 
-export type TaskPatch = Partial<Pick<Task, 'completed' | 'due' | 'time' | 'review' | 'feedback' | 'draft' | 'owner' | 'priority' | 'resolvedBy' | 'project' | 'category'>>;
+export type TaskPatch = Partial<Pick<Task, 'completed' | 'due' | 'time' | 'review' | 'feedback' | 'draft' | 'owner' | 'priority' | 'resolvedBy' | 'project' | 'category' | 'teamReview' | 'reviewRequest' | 'reviewReply' | 'requestedBy' | 'waitingOn' | 'parentId' | 'dependsOn'>>;
 
 export type RelayOp =
   | { kind: 'update'; id: string; patch: TaskPatch }
-  | { kind: 'create'; id: string; action: string; owner: OwnerId; due: string | null; priority: Priority | null };
+  | { kind: 'create'; id: string; action: string; owner: OwnerId; due: string | null; priority: Priority | null; ownerName?: string | null; parentId?: string | null; from?: string | null };
 
 export interface Settings {
   dataUrl: string;

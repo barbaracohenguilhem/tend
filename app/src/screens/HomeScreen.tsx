@@ -5,8 +5,9 @@ import { dateLine } from '../lib/dates';
 import { person } from '../lib/people';
 import { sortTasks } from '../lib/sort';
 import type { OwnerId, Role, Task } from '../lib/types';
+import { weightOf } from '../lib/weight';
 
-interface Section { key: string; title: string; hint?: string; rows: Task[]; struck?: boolean; empty: string }
+interface Section { key: string; title: string; hint?: string; rows: Task[]; struck?: boolean; light?: boolean; empty: string }
 
 interface Props {
   role: Role;
@@ -21,41 +22,53 @@ interface Props {
 /** Waiting for Carla: a proposal with no decision yet ('Changes requested' is waiting on LOLI's rewrite). */
 const isPendingDraft = (t: Task) => !!t.draft && !t.completed && (t.review === 'Pending review' || t.review === null);
 const needsDelivery = (t: Task) => !!t.deliverable && !t.completed && !(t.files && t.files.length);
+const split = (rows: Task[]) => ({ key: rows.filter(t => weightOf(t) === 'key'), light: rows.filter(t => weightOf(t) === 'light') });
 
-/** Role-specific front page: what needs this person's hand, nothing else. */
+/** Role-specific front page: decisions first, quick checks last, nothing that is not this person's. */
 export function HomeScreen({ role, name, myOwner, tasks, onOpen, onSeeAll, onSettings }: Props) {
   let title = 'For you.'; let sections: Section[] = [];
   const open = tasks.filter(t => !t.completed);
   if (role === 'carla') {
     const mine = open.filter(t => t.owner === 'carla');
+    const asks = open.filter(t => t.teamReview === 'Requested').sort(sortTasks);
     const decide = mine.filter(isPendingDraft).sort(sortTasks);
     const deliver = mine.filter(t => needsDelivery(t) && !isPendingDraft(t)).sort(sortTasks);
-    const rest = mine.filter(t => !isPendingDraft(t) && !needsDelivery(t) && t.review !== 'Changes requested').sort(sortTasks);
+    const rest = mine.filter(t => !isPendingDraft(t) && !needsDelivery(t) && t.review !== 'Changes requested' && t.teamReview !== 'Requested').sort(sortTasks);
+    const restSplit = split(rest); const decideSplit = split(decide);
     const waiting = mine.filter(t => t.review === 'Changes requested').sort(sortTasks);
     sections = [
-      { key: 'decide', title: 'To decide', hint: 'Proposed responses waiting for your approval', rows: decide, empty: 'Nothing to decide.' },
-      { key: 'deliver', title: 'To deliver', hint: 'Documents or files someone needs from you', rows: deliver, empty: 'Nothing to deliver.' },
-      { key: 'mine', title: 'Also in your name', rows: rest, empty: 'Nothing else in your name.' },
+      { key: 'asks', title: 'Your team asks', hint: 'Someone wants your go-ahead before acting', rows: asks, empty: '' },
+      { key: 'decide', title: 'To decide', hint: 'Proposed responses waiting for your approval', rows: decideSplit.key, empty: 'Nothing to decide.' },
+      { key: 'deliver', title: 'To deliver', hint: 'Documents or files someone needs from you', rows: deliver, empty: '' },
+      { key: 'mine', title: 'Also in your name', rows: restSplit.key, empty: 'Nothing else in your name.' },
       { key: 'waiting', title: 'Sent back — being rewritten', hint: 'You rejected these; a new proposal will show up in "To decide"', rows: waiting, empty: '' },
-    ].filter(s => s.rows.length > 0 || s.empty);
+      { key: 'light', title: 'Quick checks', hint: 'Low-stakes confirmations. Glance, tap done.', rows: [...decideSplit.light, ...restSplit.light], light: true, empty: '' },
+    ];
   } else if (role === 'barbara') {
     title = 'Reviewed by Carla.';
     const approved = open.filter(t => t.review === 'Approved').sort(sortTasks);
     const handed = open.filter(t => t.review === 'Barbara to handle').sort(sortTasks);
     const rejected = open.filter(t => t.review === 'Changes requested').sort(sortTasks);
     const resolved = tasks.filter(t => t.completed && t.resolvedBy === 'Carla').sort(sortTasks);
+    const asks = open.filter(t => t.teamReview === 'Requested').sort(sortTasks);
     sections = [
       { key: 'approved', title: 'Approved — for you to do', hint: 'Send the response as proposed, or handle what was approved', rows: approved, empty: 'Nothing approved yet.' },
-      { key: 'handed', title: 'Handed to you', rows: handed, empty: 'Nothing handed to you.' },
+      { key: 'handed', title: 'Handed to you', rows: handed, empty: '' },
       { key: 'rejected', title: 'Rejected — with her reason', hint: 'Open the task to read or listen to why', rows: rejected, empty: 'Nothing rejected.' },
-      { key: 'resolved', title: 'She did it herself', rows: resolved, struck: true, empty: 'Nothing resolved by Carla yet.' },
+      { key: 'asks', title: 'Team waiting on Carla', rows: asks, light: true, empty: '' },
+      { key: 'resolved', title: 'She did it herself', rows: resolved, struck: true, empty: '' },
     ];
   } else {
     title = 'Yours.';
     const mine = myOwner ? open.filter(t => t.owner === myOwner).sort(sortTasks) : [];
-    sections = [{ key: 'mine', title: myOwner ? `In your name · ${mine.length}` : 'Your tasks', rows: mine, empty: myOwner ? 'Nothing in your name right now.' : 'We could not match your address to a team member yet. Ask Barbara to add you.' }];
+    const s = split(mine);
+    sections = [
+      { key: 'mine', title: myOwner ? 'In your name' : 'Your tasks', rows: s.key, empty: myOwner ? 'Nothing in your name right now.' : 'We could not match your address to a team member yet. Ask Barbara to add you.' },
+      { key: 'light', title: 'Quick checks', rows: s.light, light: true, empty: '' },
+    ];
   }
-  const total = sections.reduce((n, s) => n + (s.struck ? 0 : s.rows.length), 0);
+  sections = sections.filter(s => s.rows.length > 0 || s.empty);
+  const total = sections.reduce((n, s) => n + (s.struck || s.light ? 0 : s.rows.length), 0);
 
   return (
     <div className="page scroll">
@@ -63,7 +76,7 @@ export function HomeScreen({ role, name, myOwner, tasks, onOpen, onSeeAll, onSet
       <h1 className="h1">{title}</h1>
       <div className="subline">{dateLine()} · {name} · {total} waiting</div>
       {sections.map(s => (
-        <div key={s.key} className="home-section">
+        <div key={s.key} className={`home-section${s.light ? ' is-light' : ''}`}>
           <div className="eyebrow section-label">{s.title}{s.rows.length ? ` · ${s.rows.length}` : ''}</div>
           {s.hint && s.rows.length > 0 && <div className="home-hint">{s.hint}</div>}
           {s.rows.length === 0 && <div className="home-empty">{s.empty}</div>}
@@ -71,11 +84,13 @@ export function HomeScreen({ role, name, myOwner, tasks, onOpen, onSeeAll, onSet
             {s.rows.map(t => {
               const o = person(t.owner);
               return (
-                <div key={t.id} className={`home-card${s.struck ? ' is-struck' : ''}`} onClick={() => onOpen(t.id)}>
-                  <div className="home-card-top"><span className="home-from">{t.from}</span><Avatar person={o} size={20} fs={9} /></div>
+                <div key={t.id} className={`home-card${s.struck ? ' is-struck' : ''}${s.light ? ' is-light' : ''}`} onClick={() => onOpen(t.id)}>
+                  <div className="home-card-top"><span className="home-from">{t.from}{t.project && t.project !== 'Sem projeto' ? ` · ${t.project}` : ''}</span><Avatar person={o} size={20} fs={9} /></div>
                   <div className="home-card-title">{t.action}</div>
+                  {s.key === 'asks' && t.reviewRequest && <div className="home-ask"><b>{t.requestedBy || o.short}:</b> {t.reviewRequest.split('\n')[0]}</div>}
                   {t.feedback && s.key === 'rejected' && <div className="home-reason">“{t.feedback}”</div>}
-                  <TaskTags task={t} compact />
+                  {!s.light && t.summary && s.key !== 'asks' && <div className="home-context">{t.summary}</div>}
+                  <TaskTags task={t} all={tasks} compact />
                 </div>
               );
             })}

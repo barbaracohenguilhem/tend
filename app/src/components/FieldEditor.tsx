@@ -9,15 +9,18 @@ const CATEGORIES = Object.keys(catColors).concat(['Newsletter / Information', 'S
 interface Props {
   task: Task;
   editable: boolean;
+  /** Owner of the task may still move the date even when the rest is locked */
+  dueEditable?: boolean;
   /** Project names already in use, for quick picking */
   projects: string[];
   onPatch: (p: TaskPatch) => void;
 }
 
 /** Priority · category · project · due date, as real controls (chips and a date picker) that write straight to Notion. */
-export function FieldEditor({ task: t, editable, projects, onPatch }: Props) {
+export function FieldEditor({ task: t, editable, dueEditable, projects, onPatch }: Props) {
   const [newProject, setNewProject] = useState('');
   const owner = person(t.owner);
+  const dueValue = t.due ? t.due.slice(0, 10) : '';
   if (!editable) {
     return (
       <div className="kv-card">
@@ -27,11 +30,20 @@ export function FieldEditor({ task: t, editable, projects, onPatch }: Props) {
         {t.project && <div className="kv-row"><span className="kv-key">Project</span><span className="kv-val">{t.project}</span></div>}
         <div className="kv-row"><span className="kv-key">Due</span><span className="kv-val">{dueLabel(t)}</span></div>
         <div className="kv-row"><span className="kv-key">Status</span><span className="kv-val">{t.completed ? `Completed${t.resolvedBy ? ` · by ${t.resolvedBy}` : ''}` : t.review || 'Open'}</span></div>
+        {dueEditable && (
+          <div className="kv-row kv-edit">
+            <div className="chip-row">
+              <div className={`sheet-chip${dueValue === iso(today()) ? ' is-active' : ''}`} onClick={() => onPatch({ due: iso(today()), time: null })}>Today</div>
+              <div className={`sheet-chip${dueValue === iso(addDays(1)) ? ' is-active' : ''}`} onClick={() => onPatch({ due: iso(addDays(1)), time: null })}>Tomorrow</div>
+              <div className={`sheet-chip${dueValue === iso(addDays(7)) ? ' is-active' : ''}`} onClick={() => onPatch({ due: iso(addDays(7)), time: null })}>Next week</div>
+              <label className="date-pick"><input type="date" value={dueValue} onChange={e => onPatch({ due: e.target.value || null, time: null })} /><span>Pick a date</span></label>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
   const projectChoices = Array.from(new Set(['Sem projeto', ...projects, ...(t.project ? [t.project] : [])]));
-  const dueValue = t.due ? t.due.slice(0, 10) : '';
   return (
     <div className="fields">
       <div className="field-block">

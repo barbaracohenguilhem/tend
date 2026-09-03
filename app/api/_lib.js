@@ -59,6 +59,7 @@ const checkbox = p => !!(p && p.type === 'checkbox' && p.checkbox);
 const url = p => (p && p.type === 'url' && p.url) || null;
 const email = p => (p && p.type === 'email' && p.email) || '';
 const dateStart = p => (p && p.type === 'date' && p.date && p.date.start) || null;
+const relation = p => (p && p.type === 'relation' && Array.isArray(p.relation) ? p.relation.map(r => String(r.id || '').replace(/-/g, '')) : []);
 const files = p => (p && p.type === 'files' && Array.isArray(p.files) ? p.files.map(f => ({ name: f.name, url: f.type === 'external' ? f.external?.url : f.file?.url, expires: f.file?.expiry_time || null })).filter(f => f.url) : []);
 
 function ownerId(s) { const t = (s || '').toLowerCase(); for (const p of PEOPLE) if (p.keys.some(k => t.includes(k))) return p.id; return 'none'; }
@@ -75,6 +76,7 @@ export function pageToItem(page) {
     subject,
     from: text(P['From']) || email(P['Sender email']),
     owner: ownerId(text(P['Owner'])),
+    ownerName: text(P['Owner']) || null,
     priority: PRIORITIES.includes(priority) ? priority : null,
     category: select(P['Category']) || 'Action required',
     review: REVIEWS.includes(review) ? review : null,
@@ -89,6 +91,15 @@ export function pageToItem(page) {
     deliverable: text(P['Deliverable requested']) || null,
     files: files(P['Deliverables']),
     voiceNotes: files(P['Voice notes']),
+    teamReview: select(P['Team review']),
+    reviewRequest: text(P['Review request']) || null,
+    reviewReply: text(P['Review reply']) || null,
+    requestedBy: text(P['Requested by']) || null,
+    waitingOn: text(P['Waiting on']) || null,
+    parentId: relation(P['Parent task'])[0] || null,
+    subtaskIds: relation(P['Subtasks']),
+    dependsOn: relation(P['Depends on']),
+    blocks: relation(P['Blocks']),
     due: start ? start.slice(0, 10) : null,
     time: start && start.length > 10 ? start.slice(11, 16) : null,
     completed: checkbox(P['Completed']),
@@ -112,6 +123,13 @@ export function patchToProperties(patch, current) {
   if (patch.resolvedBy !== undefined) props['Resolved by'] = sel(patch.resolvedBy);
   if (patch.project !== undefined) props['Project'] = sel(patch.project);
   if (patch.category !== undefined) props['Category'] = sel(patch.category);
+  if (patch.teamReview !== undefined) props['Team review'] = sel(patch.teamReview);
+  if (patch.reviewRequest !== undefined) props['Review request'] = rich(patch.reviewRequest);
+  if (patch.reviewReply !== undefined) props['Review reply'] = rich(patch.reviewReply);
+  if (patch.requestedBy !== undefined) props['Requested by'] = rich(patch.requestedBy);
+  if (patch.waitingOn !== undefined) props['Waiting on'] = rich(patch.waitingOn);
+  if (patch.parentId !== undefined) props['Parent task'] = { relation: patch.parentId ? [{ id: patch.parentId }] : [] };
+  if (patch.dependsOn !== undefined) props['Depends on'] = { relation: (patch.dependsOn || []).map(id => ({ id })) };
   if (patch.due !== undefined || patch.time !== undefined) {
     const due = patch.due !== undefined ? patch.due : (current && current.due) || null;
     const time = patch.time !== undefined ? patch.time : (current && current.time) || null;
@@ -124,14 +142,15 @@ export function createProperties(op, from) {
   const props = {
     'Subject': { title: [{ type: 'text', text: { content: op.action || 'New task' } }] },
     'Next action': rich(op.action || ''),
-    'From': rich(from || ''),
-    'Owner': rich(ownerName(op.owner)),
+    'From': rich(op.from || from || ''),
+    'Owner': rich(op.ownerName || ownerName(op.owner)),
     'Category': sel('Action required'),
     'Action required': { checkbox: true },
     'Completed': { checkbox: false },
     'Priority': sel(op.priority || 'No priority'),
   };
   if (op.due) props['Due date'] = { date: { start: op.due } };
+  if (op.parentId) props['Parent task'] = { relation: [{ id: op.parentId }] };
   return props;
 }
 
