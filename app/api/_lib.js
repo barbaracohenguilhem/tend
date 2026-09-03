@@ -16,6 +16,24 @@ const PEOPLE = [
   { id: 'yevgeniy', name: 'Yevgeniy Davidenko', keys: ['yevgeniy', 'davidenko'] },
 ];
 export const DEACTIVATED = ['bl@carlaguilhem.com', 'imb@carlaguilhem.com'];
+/** Who each address is. Mirrors src/lib/team.ts — keep the two in sync. Unknown addresses at the domain are team members who own nothing. */
+export const DIRECTORY = [
+  { email: 'design@carlaguilhem.com', name: 'Carla', role: 'carla', owner: 'carla' },
+  { email: 'bc@carlaguilhem.com', name: 'Barbara', role: 'barbara', owner: null },
+  { email: 'al@carlaguilhem.com', name: 'Alessandra', role: 'team', owner: 'alessandra' },
+  { email: 'egreco@carlaguilhem.com', name: 'Eduardo', role: 'team', owner: 'luiz' },
+  { email: 'meg@carlaguilhem.com', name: 'Eugenia', role: 'team', owner: 'eugenia' },
+  { email: 'fb@carlaguilhem.com', name: 'Fernanda', role: 'team', owner: 'fernanda' },
+  { email: 'fc@carlaguilhem.com', name: 'Francesca', role: 'team', owner: 'francesca' },
+  { email: 'yd@carlaguilhem.com', name: 'Yevgeniy', role: 'team', owner: 'yevgeniy' },
+];
+export function userFor(email) {
+  const e = String(email || '').trim().toLowerCase();
+  const m = DIRECTORY.find(x => x.email === e);
+  if (m) return m;
+  const local = e.split('@')[0] || 'tend';
+  return { email: e, name: local.charAt(0).toUpperCase() + local.slice(1), role: 'team', owner: null };
+}
 const PRIORITIES = ['High', 'Medium', 'Low'];
 const REVIEWS = ['Pending review', 'Approved', 'Changes requested', 'Barbara to handle'];
 
@@ -41,7 +59,7 @@ export function cors(req, res) {
 
 export async function notion(path, body, method = 'POST') {
   const token = process.env.NOTION_TOKEN;
-  if (!token) { const e = new Error('NOTION_TOKEN is not set on the server. Add it in Vercel → Project → Settings → Environment Variables.'); e.status = 503; throw e; }
+  if (!token) { const e = new Error('NOTION_TOKEN is not set on the server. Add it to the site\'s environment variables (Netlify → Site configuration → Environment variables) and redeploy.'); e.status = 503; throw e; }
   const r = await fetch(`${NOTION_API}/v1/${path}`, {
     method, headers: { Authorization: `Bearer ${token}`, 'Notion-Version': NOTION_VERSION, 'Content-Type': 'application/json' },
     body: body ? JSON.stringify(body) : undefined,
@@ -62,7 +80,7 @@ const dateStart = p => (p && p.type === 'date' && p.date && p.date.start) || nul
 const relation = p => (p && p.type === 'relation' && Array.isArray(p.relation) ? p.relation.map(r => String(r.id || '').replace(/-/g, '')) : []);
 const files = p => (p && p.type === 'files' && Array.isArray(p.files) ? p.files.map(f => ({ name: f.name, url: f.type === 'external' ? f.external?.url : f.file?.url, expires: f.file?.expiry_time || null })).filter(f => f.url) : []);
 
-function ownerId(s) { const t = (s || '').toLowerCase(); for (const p of PEOPLE) if (p.keys.some(k => t.includes(k))) return p.id; return 'none'; }
+export function ownerId(s) { const t = (s || '').toLowerCase(); for (const p of PEOPLE) if (p.keys.some(k => t.includes(k))) return p.id; return 'none'; }
 export function ownerName(id) { const p = PEOPLE.find(x => x.id === id); return p ? p.name : 'Not identified'; }
 
 export function pageToItem(page) {
@@ -102,6 +120,8 @@ export function pageToItem(page) {
     blocks: relation(P['Blocks']),
     due: start ? start.slice(0, 10) : null,
     time: start && start.length > 10 ? start.slice(11, 16) : null,
+    /** Full Notion datetime (with its offset) when the due date has a time; the phone converts it to local time. */
+    dueAt: start && start.length > 10 ? start : null,
     completed: checkbox(P['Completed']),
   };
 }
@@ -149,7 +169,9 @@ export function createProperties(op, from) {
     'Completed': { checkbox: false },
     'Priority': sel(op.priority || 'No priority'),
   };
-  if (op.due) props['Due date'] = { date: { start: op.due } };
+  if (op.due) props['Due date'] = { date: { start: op.time ? `${op.due}T${op.time}:00${op.tz || ''}` : op.due } };
+  if (op.project) props['Project'] = sel(op.project);
+  if (op.category) props['Category'] = sel(op.category);
   if (op.parentId) props['Parent task'] = { relation: [{ id: op.parentId }] };
   return props;
 }
@@ -165,8 +187,9 @@ const AUTHOR_RE = /^\[([^\]]{1,40})\]\s*/;
 export function commentToMessage(c) {
   const raw = plain(c.rich_text);
   const m = raw.match(AUTHOR_RE);
-  const audio = (c.attachments || []).map(a => ({ name: a.name || 'voice note', url: a.file?.url, expires: a.file?.expiry_time || null })).find(a => a.url) || null;
-  return { id: c.id, author: m ? m[1] : 'Notion', text: m ? raw.slice(m[0].length) : raw, at: c.created_time, audio };
+  const att = (c.attachments || []).map(a => ({ name: a.name || 'file', url: a.file?.url, expires: a.file?.expiry_time || null })).find(a => a.url) || null;
+  const isAudio = att && (/\.(m4a|mp3|mp4|aac|wav|ogg|oga|webm|caf|amr|3gp)$/i.test(att.name) || /^audio\//.test(String((c.attachments || [])[0]?.category || (c.attachments || [])[0]?.mime_type || '')));
+  return { id: c.id, author: m ? m[1] : 'Notion', text: m ? raw.slice(m[0].length) : raw, at: c.created_time, audio: isAudio ? att : null, file: att && !isAudio ? att : null };
 }
 
 export async function listComments(pageId) {
@@ -202,6 +225,12 @@ export async function uploadFile(filename, contentType, bytes) {
 
 /** Append an uploaded file to a files property without dropping what is already there. */
 export async function appendFile(pageId, property, fileUploadId, existing) {
-  const keep = (existing || []).map(f => f.type === 'external' ? { type: 'external', name: f.name, external: { url: f.external.url } } : { type: 'file_upload', file_upload: { id: f.file_upload?.id } }).filter(f => f.type === 'external' || f.file_upload.id);
+  // Notion keeps files that are passed back exactly as it returned them (external links and Notion-hosted files alike).
+  const keep = (existing || []).map(f => {
+    if (f.type === 'external' && f.external?.url) return { type: 'external', name: f.name, external: { url: f.external.url } };
+    if (f.type === 'file' && f.file?.url) return { type: 'file', name: f.name, file: { url: f.file.url, expiry_time: f.file.expiry_time } };
+    if (f.type === 'file_upload' && f.file_upload?.id) return { type: 'file_upload', file_upload: { id: f.file_upload.id } };
+    return null;
+  }).filter(Boolean);
   await notion(`pages/${pageId}`, { properties: { [property]: { files: [...keep, { type: 'file_upload', file_upload: { id: fileUploadId } }] } } }, 'PATCH');
 }

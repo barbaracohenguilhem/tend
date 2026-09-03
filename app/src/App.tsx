@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { TabBar } from './components/TabBar';
 import { Toast } from './components/Toast';
 import type { Anim } from './components/TaskList';
 import { addDays, dayOffset, dueLabel, iso, today } from './lib/dates';
 import { person } from './lib/people';
 import { sortTasks } from './lib/sort';
-import { readValue, writeJson } from './lib/storage';
-import type { Mode, OwnerId, Review, Screen, Task, TaskPatch } from './lib/types';
+import { setStorageUser } from './lib/storage';
+import type { Meta, Mode, OwnerId, Review, Screen, Task, TaskPatch } from './lib/types';
 import { useInbox } from './store/useInbox';
 import { useSettings } from './store/useSettings';
 import { useToast } from './store/useToast';
@@ -14,7 +14,7 @@ import { DetailScreen, type Decision, type Forward, type NewSubtask } from './sc
 import { HomeScreen } from './screens/HomeScreen';
 import { BoardScreen, type Bucket } from './screens/BoardScreen';
 import { CalendarScreen } from './screens/CalendarScreen';
-import { hasApi, postComment } from './lib/api';
+import { fetchMeta, hasApi } from './lib/api';
 import { nameFor, ownerFor, roleFor } from './lib/auth';
 import { DoneScreen } from './screens/DoneScreen';
 import { FocusScreen } from './screens/FocusScreen';
@@ -31,6 +31,13 @@ type LastAction =
   | { type: 'snooze'; id: string; prev: TaskPatch }
   | { type: 'review'; id: string; prev: TaskPatch }
   | { type: 'add'; id: string };
+
+/** Which tasks this person may see at all: managers everything, a team member only what is filed under their name. */
+function visibleFor(tasks: Task[], role: 'carla' | 'barbara' | 'team', myOwner: OwnerId | null): Task[] {
+  if (role !== 'team') return tasks;
+  if (!myOwner) return [];
+  return tasks.filter(t => t.owner === myOwner);
+}
 
 const isHandedOff = (t: Task) => t.review === 'Approved' || t.review === 'Barbara to handle';
 
@@ -52,15 +59,15 @@ function PhoneChrome() {
 
 /** Sign-in gate: the inbox (and its Notion connection) only mounts for a signed-in team member. */
 export default function App() {
-  const [session, setSession] = useState<Session | null>(() => readSession());
-  const signIn = (email: string) => { const s = { email, at: Date.now() }; writeSession(s); setSession(s); };
+  const [session, setSession] = useState<Session | null>(() => { const s = readSession(); setStorageUser(s ? s.email : null); return s; });
+  const signIn = (email: string, key: string) => { const s: Session = { email, at: Date.now(), key }; writeSession(s); setSession(s); };
   const signOut = () => { writeSession(null); setSession(null); };
   if (!session) {
     return (
       <div className="shell"><div className="phone"><PhoneChrome /><GateScreen onSignIn={signIn} /></div></div>
     );
   }
-  return <InboxApp session={session} onSignOut={signOut} />;
+  return <InboxApp key={session.email} session={session} onSignOut={signOut} />;
 }
 
 function InboxApp({ session, onSignOut }: { session: Session; onSignOut: () => void }) {
@@ -69,10 +76,13 @@ function InboxApp({ session, onSignOut }: { session: Session; onSignOut: () => v
   const role = roleFor(session.email);
   const myOwner: OwnerId | null = role === 'carla' ? 'carla' : role === 'team' ? ownerFor(session.email) : null;
   const myName = nameFor(session.email);
-  const [mode, setModeState] = useState<Mode>(() => readValue<Mode>('mode', role === 'barbara' ? 'barbara' : 'carla'));
-  useEffect(() => { writeJson('mode', mode); }, [mode]);
+  // The view follows the person, never the phone: Carla reviews, Barbara executes.
+  const [mode, setModeState] = useState<Mode>(role === 'barbara' ? 'barbara' : 'carla');
   const inbox = useInbox(settings, 'carla', show);
-  const { tasks, patch } = inbox;
+  const { patch } = inbox;
+  const tasks = useMemo(() => visibleFor(inbox.tasks, role, myOwner), [inbox.tasks, role, myOwner]);
+  const [meta, setMeta] = useState<Meta | null>(null);
+  useEffect(() => { if (hasApi) fetchMeta().then(setMeta).catch(() => undefined); }, []);
 
   const [screen, setScreen] = useState<Screen>('home');
   const [filter, setFilter] = useState<OwnerId | 'all'>(role === 'team' && myOwner ? myOwner : 'all');
@@ -103,7 +113,7 @@ function InboxApp({ session, onSignOut }: { session: Session; onSignOut: () => v
   const handoff = tasks.filter(t => !t.completed && isHandedOff(t));
   const reviewList = (carla ? pendingReview : handoff).slice().sort(sortTasks);
   const decided = carla ? handoff : [];
-  const find = (id: string | null) => tasks.find(t => t.id === id);
+  const find = (id: string | null) => { const real = inbox.resolve(id); return tasks.find(t => t.id === id || t.id === real); };
 
   const focusQueueOf = useCallback((ts: Task[], m: Mode, f: OwnerId | 'all') => openOf(ts, m).filter(t => f === 'all' || t.owner === f).sort(sortTasks), [openOf]);
   const focusQueue = focusQueueOf(tasks, mode, filter);
@@ -111,7 +121,7 @@ function InboxApp({ session, onSignOut }: { session: Session; onSignOut: () => v
   // ---- navigation
   const goTo = (s: Screen) => { setScreen(s); setDetailId(null); };
   const setMode = (m: Mode) => { setModeState(m); setFilter('all'); };
-  const openDetail = (id: string) => setDetailId(id);
+  const openDetail = (id: string) => { if (find(id)) setDetailId(id); else show(role === 'team' ? 'That task is not in your name' : 'That task is not open any more'); };
 
   // ---- actions
   const checkAllDone = () => {
@@ -192,21 +202,24 @@ function InboxApp({ session, onSignOut }: { session: Session; onSignOut: () => v
   };
 
   // ---- decisions (Carla / Barbara) and forwarding
-  const say = (id: string, text: string) => { if (hasApi && !id.startsWith('local-')) postComment(id, myName, text).catch(() => undefined); };
+  const say = (id: string, text: string) => { if (hasApi) inbox.comment(id, text, myName); };
+  const whoResolved: 'Carla' | 'Barbara' | undefined = role === 'carla' ? 'Carla' : role === 'barbara' ? 'Barbara' : undefined;
   const decide = (d: Decision) => {
     if (!detail) return;
     const id = detail.id;
     if (d.kind === 'approve') { setReview(id, 'Approved'); say(id, 'Approved ✅'); setDetailId(null); }
     if (d.kind === 'reject') { setReview(id, 'Changes requested', d.reason || ''); say(id, `Rejected ❌ — ${d.reason || ''}`); setDetailId(null); }
-    if (d.kind === 'resolved') { lastAction.current = { type: 'complete', id }; patch(id, { completed: true, resolvedBy: 'Carla' }); say(id, 'Done — I handled this myself.'); show('Marked as done by you', true); setDetailId(null); checkAllDone(); }
-    if (d.kind === 'complete') { lastAction.current = { type: 'complete', id }; patch(id, { completed: true, resolvedBy: role === 'carla' ? 'Carla' : 'Barbara' }); say(id, 'Completed ✔'); show('Completed', true); setDetailId(null); checkAllDone(); }
+    if (d.kind === 'resolved') { lastAction.current = { type: 'complete', id }; patch(id, whoResolved ? { completed: true, resolvedBy: whoResolved } : { completed: true }); say(id, 'Done — I handled this myself.'); show('Marked as done by you', true); setDetailId(null); checkAllDone(); }
+    if (d.kind === 'complete') { lastAction.current = { type: 'complete', id }; patch(id, whoResolved ? { completed: true, resolvedBy: whoResolved } : { completed: true }); say(id, 'Completed ✔'); show('Completed', true); setDetailId(null); checkAllDone(); }
     if (d.kind === 'reopen') { patch(id, { completed: false, resolvedBy: null }); show('Reopened'); }
   };
   const forward = (f: Forward) => {
     if (!detail) return;
     const to = person(f.owner);
-    const p: TaskPatch = { owner: f.owner, priority: f.priority };
+    const p: TaskPatch = { owner: f.owner };
+    if (role !== 'team' && f.priority !== detail.priority) p.priority = f.priority;
     if (f.due !== null) { p.due = iso(addDays(f.due)); p.time = null; }
+    lastAction.current = { type: 'review', id: detail.id, prev: { owner: detail.owner, priority: detail.priority, due: detail.due, time: detail.time ?? null } };
     patch(detail.id, p);
     say(detail.id, `Forwarded to ${to.short}${f.priority ? ` · ${f.priority} priority` : ''}${f.due !== null ? ` · due ${dueLabel({ due: p.due ?? null, time: null })}` : ''}${f.note ? ` — ${f.note}` : ''}`);
     show(`Forwarded to ${to.short}`, true);
@@ -215,14 +228,16 @@ function InboxApp({ session, onSignOut }: { session: Session; onSignOut: () => v
 
   const askCarla = (text: string) => {
     if (!detail) return;
+    lastAction.current = { type: 'review', id: detail.id, prev: { teamReview: detail.teamReview ?? null, reviewRequest: detail.reviewRequest ?? null, requestedBy: detail.requestedBy ?? null, reviewReply: detail.reviewReply ?? null } };
     patch(detail.id, { teamReview: 'Requested', reviewRequest: text, requestedBy: myName, reviewReply: null });
     say(detail.id, `Asked Carla to confirm: ${text}`);
     show('Sent to Carla', true); setDetailId(null);
   };
   const answerRequest = (approved: boolean, reply: string) => {
     if (!detail) return;
+    lastAction.current = { type: 'review', id: detail.id, prev: { teamReview: detail.teamReview ?? null, reviewReply: detail.reviewReply ?? null } };
     patch(detail.id, { teamReview: approved ? 'Approved' : 'Rejected', reviewReply: reply || (approved ? 'Approved' : '') });
-    say(detail.id, approved ? `Carla approved ✅${reply ? ' — ' + reply : ''}` : `Carla said no ❌ — ${reply}`);
+    say(detail.id, approved ? `${myName} approved ✅${reply ? ' — ' + reply : ''}` : `${myName} said no ❌ — ${reply}`);
     show(approved ? 'Approved' : 'Answer sent', true); setDetailId(null);
   };
   const addSubtask = (sub: NewSubtask) => {
@@ -300,8 +315,11 @@ function InboxApp({ session, onSignOut }: { session: Session; onSignOut: () => v
   };
   const fi = Math.min(focusIdx, Math.max(0, focusQueue.length - 1));
   const completedCount = tasks.filter(t => t.completed).length;
-  const projects = Array.from(new Set(tasks.map(t => t.project).filter((p): p is string => !!p && p !== 'Sem projeto'))).sort();
+  const projects = Array.from(new Set([...(meta?.projects || []), ...tasks.map(t => t.project)].filter((p): p is string => !!p && p !== 'Sem projeto'))).sort();
   const teamOnly = role === 'team';
+  /** A team member whose address is not on the roster owns nothing and cannot add anything either. */
+  const canAdd = !teamOnly || !!myOwner;
+  const connectionError = inbox.connection.status === 'error' ? inbox.connection.message || 'Could not reach the Smart Inbox.' : null;
 
   return (
     <div className="shell">
@@ -309,7 +327,7 @@ function InboxApp({ session, onSignOut }: { session: Session; onSignOut: () => v
         <PhoneChrome />
 
         {screen === 'home' && (
-          <HomeScreen role={role} name={myName} myOwner={myOwner} tasks={tasks} onOpen={openDetail} onSeeAll={teamOnly ? null : () => { setFilter('all'); goTo('today'); }} onSettings={() => setSettingsOpen(true)} />
+          <HomeScreen role={role} name={myName} myOwner={myOwner} tasks={tasks} loading={inbox.loading} error={connectionError} onRetry={() => { inbox.reload(); show('Reloading…'); }} pendingCount={inbox.pending.length} onOpen={openDetail} onSeeAll={teamOnly ? null : () => { setFilter('all'); goTo('today'); }} onSettings={() => setSettingsOpen(true)} />
         )}
         {screen === 'board' && <BoardScreen role={role} myOwner={myOwner} tasks={tasks} onMove={moveTo} onOpen={openDetail} onSettings={() => setSettingsOpen(true)} />}
         {screen === 'calendar' && <CalendarScreen role={role} myOwner={myOwner} tasks={tasks} onOpen={openDetail} onSettings={() => setSettingsOpen(true)} />}
@@ -317,11 +335,11 @@ function InboxApp({ session, onSignOut }: { session: Session; onSignOut: () => v
           <ListScreen
             screen={screen as 'today' | 'week' | 'owner'} mode={mode} headerAura={settings.headerAura} loading={inbox.loading}
             tasks={tasks} open={open} filter={filter} weekSel={weekSel} ownerId={ownerId}
-            pendingCount={inbox.pending.length} pendingLabel={inbox.source === 'relay' ? 'waiting for relay' : 'waiting to sync'} connectionError={inbox.connection.status === 'error' ? inbox.connection.message : undefined} pendingReviewCount={pendingReview.length} anim={anim}
+            pendingCount={inbox.pending.length} pendingLabel="waiting to sync" connectionError={inbox.connection.status === 'error' ? inbox.connection.message : undefined} pendingReviewCount={pendingReview.length} anim={anim}
             showPeople={role !== 'team'} onMode={setMode} onFilter={setFilter} onWeekSel={setWeekSel} onFocus={startFocus}
             onSettings={() => setSettingsOpen(true)} onPeople={() => goTo('people')}
             onComplete={complete} onSnooze={id => snooze(id, 1, 'Moved to tomorrow')} onOpen={openDetail} onReorder={reorder}
-            onAdd={() => setSheetOpen(true)}
+            onAdd={() => { if (canAdd) setSheetOpen(true); else show('Ask Barbara to add you to the roster first'); }}
           />
         )}
         {screen === 'review' && (
@@ -338,11 +356,11 @@ function InboxApp({ session, onSignOut }: { session: Session; onSignOut: () => v
           <PeopleScreen tasks={tasks} openCount={open.length} onOpenOwner={id => { setOwnerId(id); goTo('owner'); }} onSettings={() => setSettingsOpen(true)} />
         )}
 
-        {showTabs && <TabBar screen={screen} mode={mode} role={role} reviewCount={reviewList.length} onGo={goTo} onAdd={() => setSheetOpen(true)} />}
+        {showTabs && <TabBar screen={screen} mode={mode} role={role} reviewCount={reviewList.length} onGo={goTo} onAdd={canAdd ? () => setSheetOpen(true) : null} />}
 
         {detail && (
           <DetailScreen
-            task={detail} all={tasks} role={role} me={myName} myOwner={myOwner} projects={projects} onClose={() => setDetailId(null)} onOpen={openDetail}
+            key={detail.id} task={detail} all={tasks} role={role} me={myName} myOwner={myOwner} projects={projects} onClose={() => setDetailId(null)} onOpen={openDetail}
             onPatch={p => patch(detail.id, p)} onAskCarla={askCarla} onAnswerRequest={answerRequest} onAddSubtask={addSubtask}
             onSnooze={to => snooze(detail.id, to, to === 'later' ? 'Moved to later today' : to === 1 ? 'Moved to tomorrow' : 'Moved to next week', true)}
             onDecide={decide} onForward={forward} notify={show}
@@ -356,7 +374,7 @@ function InboxApp({ session, onSignOut }: { session: Session; onSignOut: () => v
           <DoneScreen summary={`${completedCount} items completed · ${pendingReview.length} drafts still to review.`} onReview={() => goTo('review')} onToday={() => goTo('today')} />
         )}
 
-        {sheetOpen && <QuickAddSheet mode={mode} fixedOwner={teamOnly ? myOwner : null} defaultDue={screen === 'week' ? weekSel : null} onAdd={addTask} onClose={() => setSheetOpen(false)} />}
+        {sheetOpen && canAdd && <QuickAddSheet mode={mode} fixedOwner={teamOnly ? myOwner : null} defaultDue={screen === 'week' ? weekSel : null} onAdd={addTask} onClose={() => setSheetOpen(false)} />}
         {settingsOpen && (
           <SettingsSheet settings={settings} source={inbox.source} connection={inbox.connection} pendingCount={inbox.pending.length} onUpdate={updateSettings}
             email={session.email} onSignOut={() => { setSettingsOpen(false); onSignOut(); }}

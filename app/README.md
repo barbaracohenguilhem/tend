@@ -1,98 +1,77 @@
 # tend · Smart Inbox
 
-The phone app from `project/Smart Inbox.dc.html`, built as an installable React PWA.
-Today lists every open action item from the Notion **Smart Inbox** database (Carla first, then the team);
-Review holds LOLI's drafts waiting for a decision; a Carla ↔ Barbara switch shows each person their view.
+The phone app for the studio's Notion **Smart Inbox**: LOLI files action items from email into Notion, and tend is where
+Carla decides, Barbara executes, and each team member sees and handles what is in their name.
 
-## Run it
+Live: https://tendys.netlify.app — sign in with an `@carlaguilhem.com` address and the team password shown on the screen,
+then on the iPhone use Share → **Add to Home Screen**.
+
+## How it is deployed
+
+GitHub `main` → Netlify builds `app/` (`netlify.toml`: base `app`, `npm run vercel-build` = icons + type-check + Vite build,
+publish `dist`, `VITE_API_BASE=/api`). The Notion integration token lives only in the Netlify environment; the phone
+never sees it. The API is one serverless function (`netlify/functions/api.mjs`) that wraps the host-neutral core in `api/`.
+
+Environment variables (Netlify → Site configuration → Environment variables):
+
+| Variable | Required | What it does |
+| --- | --- | --- |
+| `NOTION_TOKEN` | yes | Internal integration token with access to the Smart Inbox database. |
+| `TEAM_PASSWORD` | no | The shared password (default `APPCONTROLE`). The sign-in screen asks the server, so changing it here is enough; update the hint in `src/lib/auth.ts` when you do. |
+| `ALLOWED_DOMAIN` | no | Email domain allowed to sign in (default `carlaguilhem.com`). |
+
+`vercel.json` and `api/smart-inbox/*.js` keep the same API deployable on Vercel; they are not used by the Netlify site.
+
+## Who sees what
+
+Roles come from the roster in `src/lib/team.ts` (mirrored in `api/_lib.js`); addresses not on the roster can sign in
+but own nothing until they are added.
+
+- **Carla** (`design@`) — Home: *Your team asks* (Approve / No with a reply), *To decide* (every LOLI proposal pending
+  review, whoever the task belongs to), *To deliver*, *Also in your name*, *Sent back*, *Quick checks*. Board (Today /
+  Tomorrow / Later / No date), Calendar, Today, Review, chat, forwarding, field editing, subtasks and dependencies.
+- **Barbara** (`bc@`) — Home: *Approved — for you to do*, *Handed to you*, *Rejected — with her reason*, *Needs an owner*
+  (LOLI could not tell whose), *Team waiting on Carla*, *She did it herself* (struck). Same manager tools.
+- **Team** — only tasks filed under their own name, on the server as well as in the app. They can complete, change the date,
+  snooze, delegate to a teammate with a note, *Ask Carla to confirm* (text, links, attachments), add subtasks and
+  dependencies to their own tasks, and quick-add tasks for themselves.
+
+## Data and sync
+
+`src/store/useInbox.ts` reads `GET /api/smart-inbox` (open items plus anything completed in the last week, polled every
+60 s and on return to the app) and writes through `/update`, `/create`, `/comments`, `/upload`. Every change is applied
+optimistically and queued in `localStorage` per signed-in person; sends go out one at a time in order, replay when the
+phone is back online, and a change Notion refuses outright is dropped with a message instead of blocking the queue.
+Undo of a quick-add archives the Notion page if it was already created. A small service worker (`public/sw.js`) keeps
+the app shell available offline; `/api` is never cached.
+
+Due dates with a time are stored in Notion with an offset and shown in the phone's own time zone.
+
+## Run it locally
 
 ```bash
 cd app
 npm install
-npm run dev        # http://localhost:5173 — open on your phone via the LAN URL Vite prints
-npm run build      # type-checks, then writes a static site to dist/
-npm run preview    # serves dist/ locally
+npm run dev          # http://localhost:5173 — uses public/smart-inbox.json (demo data) and queues writes
+npm run build        # type-checks, then writes dist/
+VITE_API_BASE=/api npx vite build --outDir dist-vercel   # the hosted bundle (needs the API next to it)
 ```
 
-Deploy `dist/` anywhere static (Vercel, Netlify, Cloudflare Pages — zero config; framework preset "Vite").
-On the iPhone: open the URL in Safari → Share → **Add to Home Screen**. It launches full-screen with the
-status bar and home indicator handled via safe-area insets. On a desktop browser it renders inside the
-402×874 iPhone frame from the design so it can be compared against the mockup.
-
-## Publishing as a claude.ai page (the way it is deployed today)
-
-```bash
-npm run build:artifact     # writes dist/tend-artifact.html — one self-contained HTML fragment
-```
-
-Publish that file as a claude.ai Artifact with the `mcp` capability declared for the Notion connector
-(tools `notion-query-data-sources`, `notion-update-page`, `notion-create-pages`). Inside claude.ai the page
-talks to the viewer's own Notion connection — no relay, no token, nothing to host. The page is private to the
-account that published it until it is shared from its share menu. On the iPhone, open the link in Safari and
-use Share → Add to Home Screen.
-
-Live page: https://claude.ai/code/artifact/d568c62e-8e2a-48a5-a0ed-8b1796658d82
-
-## Data and sync
-
-Inside claude.ai the store (`src/store/useInbox.ts`, `src/store/notion.ts`) queries the Smart Inbox data
-source directly (rows mode, first 100 open items, polled every 60 s) and writes property updates and new pages
-back through the connector. Self-hosted, it instead reads and writes through the relay described in
-`../project/sync-spec.md` (n8n, or the same shape in Make/Zapier).
-
-Tap the **tend** logo on any screen (or the "n waiting for relay" pill) to open **Sync** settings:
-
-| Setting | What it does |
-| --- | --- |
-| Data URL | `GET` endpoint returning `{ fetchedAt, items }`. Defaults to the bundled snapshot `public/smart-inbox.json` (the "Tasks" view from 3 Sept). A remote URL is polled every 60 s and on return to the app. |
-| Relay URL | `POST` base. Write-backs go to `<relay>/smart-inbox/update` and `<relay>/smart-inbox/create` with `actor: "carla" \| "barbara"`. |
-| Relay key | Sent as the `x-relay-key` header on every request. |
-| Header aura | The peach bloom behind the Today header. |
-
-Settings are stored per device (`localStorage`), so Carla's phone and Barbara's phone each keep their own mode
-and relay configuration.
-
-**Offline / no relay yet.** Every change is applied optimistically and queued. While the relay URL is empty
-or unreachable, the header shows "n waiting for relay"; the queue survives reloads and is replayed on top of
-each fresh snapshot, then sent in order as soon as a relay URL is set, the phone comes back online, or you tap
-**Send queued** in Sync. Tasks added with the quick-add sheet live locally until the relay creates them in Notion
-and they come back in the snapshot.
-
-**CORS.** Because the app sends JSON and the `x-relay-key` header, the relay's webhooks must answer the
-`OPTIONS` preflight with `Access-Control-Allow-Origin` (your app's origin), `Access-Control-Allow-Headers:
-content-type, x-relay-key` and `Access-Control-Allow-Methods: GET, POST, OPTIONS`. In n8n, enable
-"Allowed Origins (CORS)" on the Webhook node or add a Respond-to-Webhook branch for `OPTIONS`.
-
-## What's implemented
-
-- **Today** — open items grouped by owner (Carla, Fernanda, Luiz, Alessandra, Nicola, Unassigned), sorted by priority then due date; owner filter chips; High badge; review status pill; Completed section.
-- **Carla ↔ Barbara** — Barbara sees only approved / handed-off items ("Handoff.") with *Mark completed*.
-- **Review** — LOLI's drafts with Approve, Changes + feedback (sent back to LOLI), To Barbara, inline draft editing, summary toggle, Show more, LOLI's limitation note, Open in Gmail; Decided section.
-- **Week** — Monday-based day strip with dots, per-day list, undated items.
-- **People** — per-owner cards with open/high counts and completion bar → Owner screen.
-- **Task detail** — slide-in; tap Owner / Priority / Due to cycle; Later today / Tomorrow / Next week; Mark completed / Reopen.
-- **Gestures** — swipe right = done, swipe left = tomorrow, hold the grip to reorder (local order only), tap the circle to complete.
-- **Focus** — one task at a time with Done / Tomorrow / Skip; drifting aura.
-- **Quick add** — natural language: `Send GA files to Unzile tomorrow 9am @Fernanda high`; chips to override date, owner, priority.
-- **Inbox clear** — celebration screen when nothing is left open.
-- Toasts with **Undo** for complete, snooze, review decisions and adds.
+To run the hosted bundle against a fake Notion end to end, see the Playwright harnesses used during development
+(`stage*-e2e.mjs`): they start `netlify/functions/api.mjs` in-process with `NOTION_API_BASE` pointing at a local stub.
 
 ## Layout
 
 ```
 app/
-  index.html               PWA meta, manifest, icons
-  public/
-    smart-inbox.json       bundled snapshot (copy of ../project/smart-inbox.json)
-    manifest.webmanifest, icon.svg, apple-touch-icon.png, icon-512.png
+  api/                    _core.js (routes), _lib.js (Notion mapping, roster), _http.js (adapters), smart-inbox/ (Vercel)
+  netlify/functions/      api.mjs — the Netlify function
+  public/                 manifest, icons, sw.js, smart-inbox.json (demo data only)
   src/
-    App.tsx                screen state, actions, undo
-    lib/                   types, people & category colours, dates, sorting, quick-add parser, storage
-    store/                 useSettings (Sync settings), useInbox (snapshot + relay queue), useToast
-    components/            TaskList (swipe/drag), TabBar, Avatar, ReviewPill, Toast, icons
-    screens/               ListScreen (Today/Week/Owner), Review, People, Detail, Focus, Done, QuickAdd, Settings
-    styles/aura.css        the Aura design tokens from the handoff, verbatim
-    styles/app.css         every style from the mockup, as classes
+    App.tsx               session, role scoping, handlers, undo
+    lib/                  types, team roster, auth, dates, quick-add parser, weight (decision vs quick check), api
+    store/                useInbox (data + queue), useComments, useSettings, useToast
+    components/           TaskList, TabBar, FieldEditor, TaskTags, Chat, Avatar, icons
+    screens/              Gate, Home, Board, Calendar, List (Today/Week/Owner), Review, Detail, Focus, Done, QuickAdd, Settings
+    styles/               aura.css (design tokens), app.css
 ```
-
-Fonts are the Aura substitutes (Newsreader / Manrope) loaded from Google Fonts by `aura.css`.

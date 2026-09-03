@@ -9,14 +9,18 @@ export function useComments(id: string | null, author: string) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const live = useRef(true);
+  /** Bumped whenever the task changes, so a slow answer for the previous task is ignored. */
+  const req = useRef(0);
   useEffect(() => { live.current = true; return () => { live.current = false; }; }, []);
 
   const load = useCallback(async () => {
-    if (!id || !hasApi || id.startsWith('local-')) { setComments([]); return; }
-    setLoading(true); setError(null);
-    try { const c = await fetchComments(id); if (live.current) setComments(c); }
-    catch (e) { if (live.current) setError(e instanceof Error ? e.message : 'Could not load the conversation'); }
-    finally { if (live.current) setLoading(false); }
+    const mine = ++req.current;
+    setComments([]); setError(null);
+    if (!id || !hasApi || id.startsWith('local-')) { setLoading(false); return; }
+    setLoading(true);
+    try { const c = await fetchComments(id); if (live.current && req.current === mine) setComments(c); }
+    catch (e) { if (live.current && req.current === mine) setError(e instanceof Error ? e.message : 'Could not load the conversation'); }
+    finally { if (live.current && req.current === mine) setLoading(false); }
   }, [id]);
   useEffect(() => { load(); }, [load]);
 

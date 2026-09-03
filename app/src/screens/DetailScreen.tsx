@@ -134,7 +134,8 @@ export function DetailScreen(props: Props) {
         {/* ---- structure: subtasks and dependencies ---- */}
         <div className="eyebrow">Subtasks{subtasks.length ? ` · ${subtasks.length}` : ''}</div>
         <div className="struct-card">
-          {subtasks.length === 0 && !addingSub && <div className="files-note">No subtasks yet.</div>}
+          {subtasks.length === 0 && !addingSub && !(t.subtaskIds || []).length && <div className="files-note">No subtasks yet.</div>}
+          {(t.subtaskIds || []).filter(id => !all.some(x => x.id === id)).length > 0 && <div className="files-note">{(t.subtaskIds || []).filter(id => !all.some(x => x.id === id)).length} more with other people or already done.</div>}
           {subtasks.map(s => (
             <div key={s.id} className={`struct-row${s.completed ? ' is-done' : ''}`} onClick={() => onOpen(s.id)}>
               <span className={`check mini${s.completed ? ' is-checked' : ''}`} />
@@ -222,7 +223,7 @@ export function DetailScreen(props: Props) {
         {/* ---- forward / delegate ---- */}
         {!t.completed && !forwarding && (manager || isMine) && (
           <div className="btn-row" style={{ marginTop: 18 }}>
-            <div className="btn btn-white" onClick={() => { setFwd({ ...fwd, owner: manager ? fwd.owner : teamPeople.find(p => p.id !== t.owner)?.id || 'fernanda' }); setForwarding(true); }}>{manager ? 'Forward to someone' : 'Delegate to a teammate'}</div>
+            <div className="btn btn-white" onClick={() => { setFwd({ owner: manager ? (t.owner === 'carla' ? 'fernanda' : 'carla') : teamPeople.find(p => p.id !== t.owner)?.id || 'fernanda', priority: t.priority, due: null, note: '' }); setForwarding(true); }}>{manager ? 'Forward to someone' : 'Delegate to a teammate'}</div>
             {!pendingDecision && role === 'carla' && <div className="btn btn-white" onClick={() => onDecide({ kind: 'resolved' })}>I did it myself</div>}
           </div>
         )}

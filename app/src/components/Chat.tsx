@@ -72,6 +72,7 @@ export function Chat({ comments, loading, error, busy, available, me, onSend, on
               <div className="msg-meta"><span className="msg-author">{c.author}</span><span className="msg-when">{when(c.at)}</span></div>
               {c.text && <div className="msg-text">{c.text}</div>}
               {c.audio && <audio className="msg-audio" controls preload="none" src={c.audio.url} />}
+              {c.file && <a className="link" href={c.file.url} target="_blank" rel="noopener">📎 {c.file.name}</a>}
             </div>
           );
         })}

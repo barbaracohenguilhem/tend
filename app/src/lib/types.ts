@@ -47,6 +47,8 @@ export interface Task {
   due: string | null;
   /** HH:MM, optional */
   time?: string | null;
+  /** Full datetime with offset as stored in Notion, when the due date has a time; due/time above are derived from it in local time */
+  dueAt?: string | null;
   completed: boolean;
   /** Local-only manual order set by drag-to-reorder */
   _rank?: number;
@@ -54,7 +56,7 @@ export interface Task {
 
 export interface Attachment { name: string; url: string; expires?: string | null }
 
-export interface Comment { id: string; author: string; text: string; at: string; audio?: Attachment | null }
+export interface Comment { id: string; author: string; text: string; at: string; audio?: Attachment | null; file?: Attachment | null }
 
 export type Role = 'carla' | 'barbara' | 'team';
 
@@ -71,7 +73,12 @@ export type TaskPatch = Partial<Pick<Task, 'completed' | 'due' | 'time' | 'revie
 
 export type RelayOp =
   | { kind: 'update'; id: string; patch: TaskPatch }
-  | { kind: 'create'; id: string; action: string; owner: OwnerId; due: string | null; priority: Priority | null; ownerName?: string | null; parentId?: string | null; from?: string | null };
+  | { kind: 'create'; id: string; action: string; owner: OwnerId; due: string | null; time?: string | null; priority: Priority | null; ownerName?: string | null; parentId?: string | null; from?: string | null; project?: string | null; category?: string | null }
+  | { kind: 'comment'; id: string; text: string; author: string }
+  | { kind: 'archive'; id: string };
+
+/** Select options from the Notion schema (GET /smart-inbox/meta). */
+export interface Meta { projects: string[]; categories: string[] }
 
 export interface Settings {
   dataUrl: string;

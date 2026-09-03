@@ -5,6 +5,7 @@ import type { Mode, RelayOp, Settings, Snapshot, Task, TaskPatch } from '../lib/
 import { AUTHZ_CODES, NOTION_SERVER, QUERY_INPUT, TOOL_CREATE, TOOL_QUERY, TOOL_UPDATE, createInput, describeMcpError, patchToProperties, rowToTask } from './notion';
 import { API_BASE, DEFAULT_DATA_URL } from './useSettings';
 import { TEAM_PASSWORD, readSession } from '../lib/auth';
+import { hasApi } from '../lib/api';
 
 const POLL_MS = 60_000;
 /** How long a locally applied patch keeps overriding a fresh snapshot (covers write → Notion → next poll lag). */
@@ -15,10 +16,31 @@ export interface Connection { status: 'connecting' | 'connected' | 'error'; mess
 
 interface Overlay { patch: TaskPatch; at: number }
 
-function normalize(t: Partial<Task> & Pick<Task, 'id'>): Task {
-  return { action: '', subject: '', from: '', owner: 'none', priority: null, category: '', review: null, completed: false,
-    feedback: null, gmail: null, draft: null, summary: '', time: null, due: null, ...t };
+const two = (n: number) => String(n).padStart(2, '0');
+/** A Notion datetime with its offset → this phone's local date and clock. */
+function localDue(dueAt: string): { due: string; time: string } | null {
+  const d = new Date(dueAt);
+  if (Number.isNaN(d.getTime())) return null;
+  return { due: `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())}`, time: `${two(d.getHours())}:${two(d.getMinutes())}` };
 }
+/** Offset of this phone at a given local date/time (not "now"), so dates around DST changes keep their clock. */
+function tzAt(due: string, time: string | null): string {
+  const d = new Date(`${due}T${time || '12:00'}:00`);
+  const off = -(Number.isNaN(d.getTime()) ? new Date() : d).getTimezoneOffset();
+  const sgn = off >= 0 ? '+' : '-', a = Math.abs(off);
+  return `${sgn}${two(Math.floor(a / 60))}:${two(a % 60)}`;
+}
+
+function normalize(t: Partial<Task> & Pick<Task, 'id'>): Task {
+  const base: Task = { action: '', subject: '', from: '', owner: 'none', priority: null, category: '', review: null, completed: false,
+    feedback: null, gmail: null, draft: null, summary: '', time: null, due: null, ...t };
+  if (base.dueAt && /T/.test(base.dueAt)) { const l = localDue(base.dueAt); if (l) { base.due = l.due; base.time = l.time; } }
+  return base;
+}
+
+/** Errors the server will never accept, whatever we do: drop the change instead of retrying it forever. */
+class PermanentError extends Error { permanent = true; }
+const isPermanent = (e: unknown) => !!e && typeof e === 'object' && (e as { permanent?: boolean }).permanent === true;
 
 /**
  * Smart Inbox data. Inside claude.ai the page talks to the viewer's Notion connector directly (`mcp` capability);
@@ -38,6 +60,12 @@ export function useInbox(settings: Settings, mode: Mode, notify: (text: string) 
   const idMap = useRef<Record<string, string>>(readValue('idMap', {}));
   const pollTimer = useRef<number | undefined>(undefined);
   const flushing = useRef(false);
+  /** Sends go out one at a time, in the order they were made, so two quick edits cannot overtake each other. */
+  const chain = useRef<Promise<void>>(Promise.resolve());
+  /** Local ids whose create request is on the wire right now. */
+  const inflight = useRef<Set<string>>(new Set());
+  /** Local ids the user undid while their create was in flight: archive them as soon as Notion answers. */
+  const removed = useRef<Set<string>>(new Set());
   const modeRef = useRef(mode); modeRef.current = mode;
   const settingsRef = useRef(settings); settingsRef.current = settings;
   const pendingRef = useRef(pending); pendingRef.current = pending;
@@ -73,10 +101,10 @@ export function useInbox(settings: Settings, mode: Mode, notify: (text: string) 
       const withOverlay = o && now - o.at < OVERLAY_MS ? { ...t, ...o.patch } : t;
       return queued[t.id] ? { ...withOverlay, ...queued[t.id] } : withOverlay;
     });
-    Object.values(created.current).forEach(t => {
-      const realId = idMap.current[t.id];
-      if (ids.has(t.id) || (realId && ids.has(realId))) { delete created.current[t.id]; return; }
-      const o = overlay.current[t.id];
+    Object.entries(created.current).forEach(([key, t]) => {
+      const realId = idMap.current[key] || idMap.current[t.id];
+      if (ids.has(t.id) || (realId && ids.has(realId)) || removed.current.has(key)) { delete created.current[key]; return; }
+      const o = overlay.current[key] || overlay.current[t.id];
       out.push(o ? { ...t, ...o.patch } : t);
     });
     writeJson('created', created.current);
@@ -87,9 +115,9 @@ export function useInbox(settings: Settings, mode: Mode, notify: (text: string) 
   const headers = useCallback((json: boolean) => {
     const h: Record<string, string> = {};
     if (json) h['content-type'] = 'application/json';
-    const key = settingsRef.current.relayKey || (API_BASE ? TEAM_PASSWORD : '');
-    if (key) h['x-relay-key'] = key;
     const session = readSession();
+    const key = settingsRef.current.relayKey || (session && session.key) || (API_BASE ? TEAM_PASSWORD : '');
+    if (key) h['x-relay-key'] = key;
     if (session) h['x-user'] = session.email;
     return h;
   }, []);
@@ -179,6 +207,7 @@ export function useInbox(settings: Settings, mode: Mode, notify: (text: string) 
   const sendOp = useCallback(async (op: RelayOp) => {
     if (source === 'notion' && mcp.current) {
       const ns = mcp.current;
+      if (op.kind === 'comment' || op.kind === 'archive') return; // not supported through the connector
       if (op.kind === 'update') {
         const id = realId(op.id);
         if (id.startsWith('local-')) throw { code: 'not_created', message: 'Task not in Notion yet' } as McpError;
@@ -200,16 +229,60 @@ export function useInbox(settings: Settings, mode: Mode, notify: (text: string) 
     if (source === 'relay') {
       const base = settingsRef.current.relayUrl.replace(/\/$/, '');
       if (!base) throw new Error('no relay');
-      const current = op.kind === 'update' ? tasksRef.current.find(t => t.id === op.id) : undefined;
-      const tz = (() => { const off = -new Date().getTimezoneOffset(); const s = off >= 0 ? '+' : '-', a = Math.abs(off); return `${s}${String(Math.floor(a / 60)).padStart(2, '0')}:${String(a % 60).padStart(2, '0')}`; })();
-      const payload = op.kind === 'update' ? { ...op, id: realId(op.id), patch: { ...op.patch, tz }, current, actor: modeRef.current } : { ...op, actor: modeRef.current };
-      const r = await fetch(`${base}/smart-inbox/${op.kind}`, { method: 'POST', headers: headers(true), body: JSON.stringify(payload) });
-      const j = await r.json().catch(() => ({})) as { id?: string; error?: string };
-      if (!r.ok) throw new Error(j.error || String(r.status));
-      if (op.kind === 'create' && j.id && j.id !== op.id) {
+      const mapId = (id: string) => idMap.current[id] || id;
+      const stillLocal = (id: string | null | undefined) => !!id && id.startsWith('local-');
+      const post = async (route: string, payload: unknown) => {
+        let r: Response;
+        try { r = await fetch(`${base}/smart-inbox/${route}`, { method: 'POST', headers: headers(true), body: JSON.stringify(payload) }); }
+        catch (e) { throw new Error(e instanceof Error && e.message ? e.message : 'server unreachable'); }
+        const j = await r.json().catch(() => ({})) as { id?: string; error?: string };
+        if (!r.ok) {
+          const msg = j.error || String(r.status);
+          if (r.status === 400 || r.status === 403 || r.status === 404 || r.status === 422) throw new PermanentError(msg);
+          throw new Error(msg);
+        }
+        return j;
+      };
+      if (op.kind === 'update') {
+        const id = mapId(op.id);
+        if (stillLocal(id)) throw new Error('waiting for the task to reach Notion');
+        const patch: TaskPatch & { tz?: string } = { ...op.patch };
+        if (patch.parentId) patch.parentId = mapId(patch.parentId);
+        if (patch.dependsOn) patch.dependsOn = patch.dependsOn.map(mapId);
+        if (stillLocal(patch.parentId) || (patch.dependsOn || []).some(stillLocal)) throw new Error('waiting for a linked task to reach Notion');
+        const current = tasksRef.current.find(t => t.id === op.id || t.id === id);
+        const due = patch.due !== undefined ? patch.due : current?.due ?? null;
+        const time = patch.time !== undefined ? patch.time : current?.time ?? null;
+        if (due && time) patch.tz = tzAt(due, time);
+        await post('update', { kind: 'update', id, patch, current, actor: modeRef.current });
+        return;
+      }
+      if (op.kind === 'archive') {
+        const id = mapId(op.id);
+        if (stillLocal(id)) return; // never reached Notion — nothing to archive
+        await post('update', { id, archive: true });
+        return;
+      }
+      if (op.kind === 'comment') {
+        const id = mapId(op.id);
+        if (stillLocal(id)) throw new Error('waiting for the task to reach Notion');
+        await post('comments', { id, author: op.author, text: op.text });
+        return;
+      }
+      // create
+      if (removed.current.has(op.id)) { removed.current.delete(op.id); return; } // undone before it was ever sent
+      const parentId = op.parentId ? mapId(op.parentId) : null;
+      if (stillLocal(parentId)) throw new Error('waiting for the parent task to reach Notion');
+      const tz = op.due && op.time ? tzAt(op.due, op.time) : undefined;
+      inflight.current.add(op.id);
+      let j: { id?: string };
+      try { j = await post('create', { ...op, parentId, tz, actor: modeRef.current }); }
+      finally { inflight.current.delete(op.id); }
+      if (j.id && j.id !== op.id) {
         idMap.current[op.id] = j.id; writeJson('idMap', idMap.current);
         if (created.current[op.id]) created.current[op.id] = { ...created.current[op.id], id: j.id };
-        setTasks(ts => ts.map(t => (t.id === op.id ? { ...t, id: j.id as string } : t)));
+        setTasks(ts => ts.map(t => (t.id === op.id ? { ...t, id: j.id as string, parentId: t.parentId ? mapId(t.parentId) : t.parentId } : t)));
+        if (removed.current.has(op.id)) { removed.current.delete(op.id); await post('update', { id: j.id, archive: true }).catch(() => undefined); }
       }
       return;
     }
@@ -218,19 +291,25 @@ export function useInbox(settings: Settings, mode: Mode, notify: (text: string) 
 
   const canSend = source === 'notion' || (source === 'relay' && !!settings.relayUrl);
 
-  /** Send queued ops in order; stop at the first failure and keep the rest queued. */
+  /** Send queued ops in order; stop at the first retryable failure and keep the rest queued. Changes the server will never accept are dropped, loudly. */
   const flush = useCallback(async (loud = false) => {
     if (flushing.current || !canSend || !pending.length) return;
     flushing.current = true;
-    let sent = 0;
+    let done = 0, sent = 0;
     try {
-      for (const op of pending) { await sendOp(op); sent++; }
+      for (const op of pending) {
+        try { await sendOp(op); sent++; done++; }
+        catch (e) {
+          if (isPermanent(e)) { done++; notify(`A change was refused by Notion and dropped — ${(e as Error).message}`); continue; }
+          throw e;
+        }
+      }
       if (loud) notify(`Sent ${sent} change${sent === 1 ? '' : 's'} to Notion`);
     } catch (e) {
       if (loud) notify(source === 'notion' ? describeMcpError(e as McpError) : `Still queued — ${e instanceof Error ? e.message : 'server unreachable'}`);
     } finally {
       flushing.current = false;
-      if (sent) setPending(p => p.slice(sent));
+      if (done) setPending(p => p.slice(done));
     }
   }, [pending, sendOp, notify, canSend, source]);
 
@@ -246,9 +325,14 @@ export function useInbox(settings: Settings, mode: Mode, notify: (text: string) 
   const relay = useCallback((op: RelayOp) => {
     if (!canSend) { setPending(p => [...p, op]); return; }
     if (pendingRef.current.length) { setPending(p => [...p, op]); return; } // keep order behind what is already queued
-    sendOp(op).catch((e: McpError) => {
-      setPending(p => [...p, op]);
-      notify(source === 'notion' ? `Change queued — ${describeMcpError(e)}` : `Change queued — ${e instanceof Error && e.message ? e.message : 'server unreachable'}`);
+    chain.current = chain.current.then(async () => {
+      if (pendingRef.current.length) { setPending(p => [...p, op]); return; } // something ahead of us got queued meanwhile
+      try { await sendOp(op); }
+      catch (e) {
+        if (isPermanent(e)) { notify(`Notion refused that change — ${(e as Error).message}`); return; }
+        setPending(p => [...p, op]);
+        notify(source === 'notion' ? `Change queued — ${describeMcpError(e as McpError)}` : `Change queued — ${e instanceof Error && e.message ? e.message : 'server unreachable'}`);
+      }
     });
   }, [canSend, sendOp, notify, source]);
 
@@ -272,20 +356,34 @@ export function useInbox(settings: Settings, mode: Mode, notify: (text: string) 
     created.current[task.id] = task;
     writeJson('created', created.current);
     setTasks(ts => [...ts, task]);
-    relay({ kind: 'create', id: task.id, action: task.action, owner: task.owner, due: task.due, priority: task.priority, parentId: task.parentId ?? null, ownerName: extra?.ownerName ?? null, from: extra?.from ?? null });
+    relay({ kind: 'create', id: task.id, action: task.action, owner: task.owner, due: task.due, time: task.time ?? null, priority: task.priority, parentId: task.parentId ?? null, ownerName: extra?.ownerName ?? null, from: extra?.from ?? null, project: task.project ?? null, category: task.category || null });
   }, [relay]);
 
+  /** Undo a local add: forget it here and, if Notion already has it (or is about to), archive the page. */
   const remove = useCallback((id: string) => {
     delete created.current[id];
     writeJson('created', created.current);
-    setTasks(ts => ts.filter(t => t.id !== id));
-    setPending(p => p.filter(op => !(op.kind === 'create' && op.id === id)));
-  }, []);
+    const realId = idMap.current[id];
+    setTasks(ts => ts.filter(t => t.id !== id && t.id !== realId));
+    const queued = pendingRef.current.some(op => op.kind === 'create' && op.id === id);
+    setPending(p => p.filter(op => op.id !== id));
+    if (realId) relay({ kind: 'archive', id: realId });
+    else if (!queued) removed.current.add(id); // in flight (or already sent): archive when the id comes back
+  }, [relay]);
+
+  /** A note on the task's Notion page, queued like any other change so it is not lost offline. */
+  const comment = useCallback((id: string, text: string, author: string) => {
+    if (!hasApi && source !== 'relay') return;
+    relay({ kind: 'comment', id, text, author });
+  }, [relay, source]);
 
   /** Local-only manual order after drag-to-reorder (not synced). */
   const rank = useCallback((ranks: Record<string, number>) => {
     setTasks(ts => ts.map(t => (ranks[t.id] !== undefined ? { ...t, _rank: ranks[t.id] } : t)));
   }, []);
 
-  return { tasks, loading, pending, source, connection, patch, create, remove, rank, reload, flush };
+  /** The id a task is known by now: a local id becomes the Notion page id once the create has gone through. */
+  const resolve = useCallback((id: string | null) => (id ? idMap.current[id] || id : id), []);
+
+  return { tasks, loading, pending, source, connection, patch, create, remove, comment, rank, reload, flush, resolve };
 }

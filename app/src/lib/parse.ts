@@ -21,10 +21,12 @@ export function parseDraft(raw: string, mode: Mode, base: Date): ParsedDraft {
     const m = text.match(re);
     if (m) { fn(m); text = text.replace(m[0], ' '); }
   };
-  people.forEach(p => p.keys.forEach(k => eat(new RegExp('\\s(?:@|for\\s)' + k + '\\b', 'i'), () => { out.owner = p.id; })));
-  eat(/\s@me\b/i, () => { out.owner = mode === 'carla' ? 'carla' : 'none'; });
-  eat(/\s(high|urgent)\b/i, () => { out.priority = 'High'; });
-  eat(/\s(low)\b/i, () => { out.priority = 'Low'; });
+  // "@fernanda" or "for Fernanda" — but not "for Fernanda's feedback" (that is her feedback, not her task)
+  people.forEach(p => p.keys.forEach(k => eat(new RegExp('\\s(?:@|for\\s)' + k + "(?![\\w'’-])", 'i'), () => { out.owner = p.id; })));
+  eat(/\s@me(?![\w'’-])/i, () => { out.owner = mode === 'carla' ? 'carla' : 'none'; });
+  // priority words must stand alone: "high-res renders" keeps its title
+  eat(/\s(high|urgent)(?![\w'’-])/i, () => { out.priority = 'High'; });
+  eat(/\s(low)(?![\w'’-])/i, () => { out.priority = 'Low'; });
   eat(/\s(?:at\s)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/i, m => {
     let h = (+m[1]) % 12;
     if (m[3].toLowerCase() === 'pm') h += 12;
@@ -35,8 +37,9 @@ export function parseDraft(raw: string, mode: Mode, base: Date): ParsedDraft {
   eat(/\s(tomorrow|tmrw|tmr)\b/i, () => { out.due = 1; });
   eat(/\snext\sweek\b/i, () => { out.due = 7; });
   eat(/\sin\s(\d+)\sdays?\b/i, m => { out.due = +m[1]; });
-  eat(/\s(?:on\s|by\s)?(next\s)?(mon|tue|wed|thu|fri|sat|sun)(?:day|sday|nesday|rsday|urday)?\b/i, m => {
-    const idx = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'].indexOf(m[2].toLowerCase());
+  // Full day names anywhere; three-letter forms only after on/by/next or at the very end ("sun exposure" is not a date)
+  eat(/\s(?:(?:on|by)\s)?(next\s)?(monday|tuesday|wednesday|thursday|friday|saturday|sunday|(?<=\s(?:on|by|next)\s)(?:mon|tue|wed|thu|fri|sat|sun)|(?:mon|tue|wed|thu|fri|sat|sun)(?=\s*$))(?![\w'’-])/i, m => {
+    const idx = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'].indexOf(m[2].slice(0, 3).toLowerCase());
     let diff = (idx - base.getDay() + 7) % 7;
     if (diff === 0) diff = 7;
     if (m[1]) diff += 7;

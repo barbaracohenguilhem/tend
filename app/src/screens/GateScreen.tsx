@@ -1,19 +1,29 @@
 import { useEffect, useRef, useState } from 'react';
 import { Logo } from '../components/Logo';
-import { ALLOWED_DOMAIN, TEAM_PASSWORD, checkCredentials } from '../lib/auth';
+import { ALLOWED_DOMAIN, TEAM_PASSWORD, checkCredentials, matchesLocalPassword } from '../lib/auth';
+import { verifyCredentials } from '../lib/api';
 
 /** Team sign-in: an @carlaguilhem.com address plus the shared password, remembered on this device. */
-export function GateScreen({ onSignIn }: { onSignIn: (email: string) => void }) {
+export function GateScreen({ onSignIn }: { onSignIn: (email: string, key: string) => void }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
   useEffect(() => { emailRef.current?.focus(); }, []);
 
-  const submit = () => {
+  const submit = async () => {
+    if (busy) return;
     const err = checkCredentials(email, password);
     if (err) { setError(err); return; }
-    onSignIn(email.trim().toLowerCase());
+    const e = email.trim().toLowerCase(), key = password.trim();
+    setBusy(true);
+    // The server decides (its TEAM_PASSWORD can differ from the hint below); offline, the printed password is accepted.
+    const v = await verifyCredentials(e, key);
+    setBusy(false);
+    if (v && !v.ok) { setError(v.error || 'Wrong password.'); return; }
+    if (!v && !matchesLocalPassword(key)) { setError('Wrong password.'); return; }
+    onSignIn(e, key);
   };
   const onKey = (e: React.KeyboardEvent) => { if (e.key === 'Enter') submit(); };
 
@@ -37,7 +47,7 @@ export function GateScreen({ onSignIn }: { onSignIn: (email: string) => void }) 
               placeholder="Team password" value={password} onChange={e => { setPassword(e.target.value); setError(null); }} onKeyDown={onKey} />
           </div>
           {error && <div className="gate-error" role="alert">{error}</div>}
-          <div className="btn btn-ink btn-big" onClick={submit}>Sign in</div>
+          <div className={`btn btn-ink btn-big${busy ? ' is-busy' : ''}`} onClick={submit}>{busy ? 'Checking…' : 'Sign in'}</div>
         </div>
         <div className="gate-info">
           <div className="eyebrow">How to get in</div>

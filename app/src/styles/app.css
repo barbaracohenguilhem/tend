@@ -436,3 +436,9 @@ input::placeholder, textarea::placeholder { color: #9A958C; }
 .home-section.is-light .home-card { box-shadow: none; background: rgba(255,255,255,0.55); border: 1px dashed rgba(27,24,21,0.12); }
 .home-section.is-light .home-card-title { font-weight: 400; color: var(--ink-soft); }
 .kv-edit { flex-direction: column; align-items: stretch; gap: 8px; cursor: default; }
+
+/* ---- connection banner (Home) ---- */
+.banner { display: flex; align-items: center; gap: 12px; margin: 10px 0 16px; padding: 12px 14px; border-radius: 14px; font-size: 13px; line-height: 1.4; }
+.banner-error { background: #FBE9E4; color: #7A2E1D; border: 1px solid #F3C9BE; }
+.banner-error .btn { flex: none; }
+.btn.is-busy { opacity: 0.6; pointer-events: none; }

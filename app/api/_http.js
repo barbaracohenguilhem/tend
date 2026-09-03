@@ -20,10 +20,13 @@ export async function fromNode(req) {
     const chunks = [];
     if (Buffer.isBuffer(req.body)) chunks.push(req.body);
     else if (typeof req.body === 'string') chunks.push(Buffer.from(req.body));
-    else for await (const c of req) chunks.push(c);
+    else await new Promise((resolve, reject) => { req.on('data', c => chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c))); req.on('end', resolve); req.on('error', reject); });
     raw = await readMultipart(new Request('http://x' + req.url, { method: 'POST', headers: { 'content-type': ct }, body: Buffer.concat(chunks) }));
   } else {
-    body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body;
+    if (req.body === undefined && req.method === 'POST') {
+      const chunks = []; await new Promise((resolve, reject) => { req.on('data', c => chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c))); req.on('end', resolve); req.on('error', reject); });
+      const text = Buffer.concat(chunks).toString('utf8'); body = text ? JSON.parse(text) : {};
+    } else body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body ?? {});
   }
   return { method: req.method, path: url.pathname, headers: req.headers, body, query: Object.fromEntries(url.searchParams), raw };
 }
