@@ -86,7 +86,7 @@ Caveats: fonts are the Aura substitutes (Newsreader/Manrope); sample team and ta
 
 ## User
 
-ntn_h8595122304bauKSPiXZiW4kM0Ixv76ivebeAk6kW4I7LO 3ce2004f28808045a662d5b0314775dc
+[Notion integration token redacted — rotate it in Notion] 3ce2004f28808045a662d5b0314775dc
 
 ## Assistant
 

@@ -1,0 +1,380 @@
+/* =============================================================
+   Aura Design System — Colors & Type
+   -------------------------------------------------------------
+   A "soft UX" design system inspired by mymind, Lóvi, and Volv:
+   editorial serifs, gradient auras, off-white canvases,
+   capsule buttons, and a calm, almost-spa quality of light.
+   ============================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,300..700&family=Manrope:wght@300..700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  /* ---------------------------------------------------------
+     COLOR — NEUTRALS (the canvas)
+     The system lives on warm, paper-like off-whites. Pure white
+     is rare; grey is rare too. Imagine museum lighting.
+     --------------------------------------------------------- */
+  --paper:        #F6F4EF;   /* primary canvas — warm bone */
+  --paper-soft:   #F1EEE7;   /* secondary surface — slightly deeper */
+  --paper-cool:   #EFEEF0;   /* alternate canvas — cool, for blue auras */
+  --bone:         #E8E4DA;   /* dividers, subtle fills */
+  --linen:        #DCD7CB;   /* heavier divider, disabled */
+  --ink:          #1B1815;   /* primary text — never #000 */
+  --ink-soft:     #2D2A26;   /* body */
+  --ink-mute:     #6B6760;   /* secondary text */
+  --ink-faint:    #9A958C;   /* tertiary, captions, meta */
+
+  /* On dark / on-aura surfaces */
+  --ink-on-aura:  #1B1815;   /* aura backgrounds are light, ink stays dark */
+  --paper-on-ink: #F6F4EF;
+
+  /* ---------------------------------------------------------
+     COLOR — AURA HUES
+     The signature: blurry gradient orbs. These are the source
+     pigments. Combined in radial gradients, never used flat.
+     --------------------------------------------------------- */
+  --aura-peach:   #FFB59A;
+  --aura-coral:   #FF8C6B;
+  --aura-blush:   #F7C8D6;
+  --aura-rose:    #E89BB5;
+  --aura-lavender:#C9B8E8;
+  --aura-violet:  #9D8AD9;
+  --aura-sky:     #A8C5F0;
+  --aura-azure:   #6E9BE0;
+  --aura-butter:  #FFE3A8;
+  --aura-mint:    #B8E0CA;
+
+  /* ---------------------------------------------------------
+     COLOR — ACCENTS
+     One hot accent (CTA), one cool accent. Used sparingly.
+     --------------------------------------------------------- */
+  --accent:        #F26B3A;   /* mymind orange — CTAs, links on warm */
+  --accent-press:  #D8501E;
+  --accent-soft:   #FFE4D6;   /* bg for accent chips */
+
+  --accent-cool:       #5B6BFF; /* Lóvi-style cool accent — alt CTA */
+  --accent-cool-press: #3A4BE8;
+
+  /* ---------------------------------------------------------
+     COLOR — SEMANTIC
+     --------------------------------------------------------- */
+  --success: #4F8A5B;
+  --success-soft: #DDEBDF;
+  --warning: #C99245;
+  --warning-soft: #F5E7CF;
+  --danger:  #C04A3A;
+  --danger-soft: #F4D9D2;
+  --info:    #5B7AB8;
+  --info-soft: #DDE5F1;
+
+  /* ---------------------------------------------------------
+     SIGNATURE GRADIENTS — AURAS
+     Use as backgrounds for full pages, hero sections, cards.
+     They are large, soft, off-center radial blooms.
+     --------------------------------------------------------- */
+  --aura-warm: radial-gradient(ellipse 80% 70% at 50% 30%,
+    var(--aura-peach) 0%,
+    var(--aura-coral) 25%,
+    var(--aura-blush) 55%,
+    var(--paper) 85%);
+
+  --aura-cool: radial-gradient(ellipse 90% 80% at 30% 40%,
+    var(--aura-lavender) 0%,
+    var(--aura-violet) 30%,
+    var(--aura-sky) 60%,
+    var(--paper-cool) 90%);
+
+  --aura-dawn: radial-gradient(ellipse 100% 80% at 50% 50%,
+    var(--aura-butter) 0%,
+    var(--aura-blush) 25%,
+    var(--aura-lavender) 55%,
+    var(--aura-sky) 85%,
+    var(--paper-cool) 100%);
+
+  --aura-iridescent: conic-gradient(from 200deg at 50% 50%,
+    var(--aura-peach),
+    var(--aura-blush),
+    var(--aura-lavender),
+    var(--aura-sky),
+    var(--aura-mint),
+    var(--aura-butter),
+    var(--aura-peach));
+
+  --aura-orb: radial-gradient(circle at 35% 35%,
+    rgba(255,255,255,0.7) 0%,
+    var(--aura-blush) 30%,
+    var(--aura-lavender) 60%,
+    var(--aura-sky) 100%);
+
+  /* ---------------------------------------------------------
+     TYPOGRAPHY — FAMILIES
+     Newsreader: editorial serif, generous quirk in italics — our
+       Reckless / Söhne Mono substitute for display.
+     Manrope: humanist sans, gentle terminals — body & UI.
+     JetBrains Mono: code, kbd, tabular figures.
+     SUBSTITUTION FLAG: original mood references use Reckless
+     (Display serif) and likely a Söhne / GT America style sans.
+     Confirm with brand owner before production.
+     --------------------------------------------------------- */
+  --font-serif:  'Newsreader', 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  --font-sans:   'Manrope', 'Söhne', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono:   'JetBrains Mono', 'IBM Plex Mono', 'SFMono-Regular', monospace;
+
+  /* ---------------------------------------------------------
+     TYPOGRAPHY — TYPE SCALE
+     A 1.250 (Major Third) scale, anchored at 16px body.
+     --------------------------------------------------------- */
+  --text-xs:   12px;
+  --text-sm:   14px;
+  --text-base: 16px;
+  --text-md:   18px;
+  --text-lg:   22px;
+  --text-xl:   28px;
+  --text-2xl:  36px;
+  --text-3xl:  48px;
+  --text-4xl:  64px;
+  --text-5xl:  84px;
+  --text-6xl:  112px;
+
+  /* Display headlines lean tight, letter-spacing pulls in slightly.
+     Body stays loose for readability. */
+  --tracking-display: -0.02em;
+  --tracking-tight:   -0.01em;
+  --tracking-normal:  0;
+  --tracking-wide:    0.04em;
+  --tracking-eyebrow: 0.14em;   /* uppercase eyebrows */
+
+  --leading-display: 0.95;
+  --leading-tight:   1.1;
+  --leading-snug:    1.25;
+  --leading-normal:  1.5;
+  --leading-loose:   1.7;
+
+  /* ---------------------------------------------------------
+     SPACING — 4px base
+     --------------------------------------------------------- */
+  --space-0:  0;
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  24px;
+  --space-6:  32px;
+  --space-7:  48px;
+  --space-8:  64px;
+  --space-9:  96px;
+  --space-10: 128px;
+  --space-11: 192px;
+
+  /* ---------------------------------------------------------
+     RADII — generous and capsule-heavy
+     Buttons are full pills. Cards are softly rounded. Inputs
+     follow card radius. The system is very rarely sharp.
+     --------------------------------------------------------- */
+  --radius-xs:    4px;
+  --radius-sm:    8px;
+  --radius-md:    14px;
+  --radius-lg:    20px;
+  --radius-xl:    28px;
+  --radius-2xl:   40px;
+  --radius-pill:  999px;
+
+  /* ---------------------------------------------------------
+     SHADOWS / ELEVATION
+     Two systems: soft outer (drop) and soft-UX inner-outer
+     duo (neumorphic). Use neumorphic only on flat paper bg.
+     --------------------------------------------------------- */
+  --shadow-xs:  0 1px 2px rgba(27,24,21,0.04);
+  --shadow-sm:  0 2px 8px rgba(27,24,21,0.06);
+  --shadow-md:  0 8px 24px rgba(27,24,21,0.08);
+  --shadow-lg:  0 18px 48px rgba(27,24,21,0.10);
+  --shadow-xl:  0 32px 80px rgba(27,24,21,0.14);
+
+  /* Neumorphic — for the Soft UX music-player style controls.
+     Only readable on a paper-soft background. */
+  --shadow-soft-up:
+    -8px -8px 18px rgba(255,255,255,0.85),
+     8px  8px 18px rgba(27,24,21,0.08);
+  --shadow-soft-down:
+    inset -4px -4px 10px rgba(255,255,255,0.75),
+    inset  4px  4px 10px rgba(27,24,21,0.07);
+
+  /* Aura glow — for elements sitting on paper without an aura bg. */
+  --shadow-glow-warm: 0 0 80px 20px rgba(255,140,107,0.22);
+  --shadow-glow-cool: 0 0 80px 20px rgba(157,138,217,0.22);
+
+  /* ---------------------------------------------------------
+     BORDERS
+     Hairlines, never heavy. Often replaced by shadow.
+     --------------------------------------------------------- */
+  --border-hairline: 1px solid rgba(27,24,21,0.08);
+  --border-soft:     1px solid rgba(27,24,21,0.12);
+  --border-strong:   1px solid rgba(27,24,21,0.22);
+
+  /* ---------------------------------------------------------
+     MOTION
+     Gentle, slightly long. The system feels "settled" not snappy.
+     --------------------------------------------------------- */
+  --ease-in-out: cubic-bezier(0.65, 0.05, 0.35, 1);
+  --ease-out:    cubic-bezier(0.20, 0.80, 0.30, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --dur-instant: 80ms;
+  --dur-fast:    160ms;
+  --dur-base:    280ms;
+  --dur-slow:    520ms;
+  --dur-aura:    1200ms;     /* aura drift / breathing */
+
+  /* ---------------------------------------------------------
+     LAYOUT
+     --------------------------------------------------------- */
+  --content-narrow: 560px;     /* manifesto-style centered text */
+  --content-base:   880px;
+  --content-wide:   1200px;
+  --content-full:   1440px;
+}
+
+/* =============================================================
+   SEMANTIC TYPE STYLES
+   Apply directly to elements, or compose into utility classes.
+   ============================================================= */
+
+html { font-family: var(--font-sans); color: var(--ink); background: var(--paper); }
+body { font-size: var(--text-base); line-height: var(--leading-normal); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+/* DISPLAY — for hero headlines, manifesto pages.
+   Always Newsreader, often italic for "Why?" "How?" pages. */
+.display, h1.display {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: clamp(48px, 7vw, var(--text-6xl));
+  line-height: var(--leading-display);
+  letter-spacing: var(--tracking-display);
+  color: var(--ink);
+}
+.display--italic { font-style: italic; }
+
+/* H1 — page title */
+h1, .h1 {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: clamp(40px, 5vw, var(--text-4xl));
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-display);
+  color: var(--ink);
+  margin: 0;
+}
+
+/* H2 — section title */
+h2, .h2 {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: clamp(28px, 3.2vw, var(--text-2xl));
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+  color: var(--ink);
+  margin: 0;
+}
+
+/* H3 — sub-section, also used for serif lead-ins on cards */
+h3, .h3 {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: var(--text-xl);
+  line-height: var(--leading-snug);
+  letter-spacing: var(--tracking-tight);
+  color: var(--ink);
+  margin: 0;
+}
+
+/* H4 — UI titles, sans by default */
+h4, .h4 {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: var(--text-lg);
+  line-height: var(--leading-snug);
+  letter-spacing: var(--tracking-tight);
+  color: var(--ink);
+  margin: 0;
+}
+
+/* H5 — small UI label */
+h5, .h5 {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: var(--text-md);
+  line-height: var(--leading-snug);
+  color: var(--ink);
+  margin: 0;
+}
+
+/* EYEBROW — small uppercase tag above a section title */
+.eyebrow {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-eyebrow);
+  color: var(--ink-mute);
+}
+
+/* BODY — manrope, generous leading, moderate measure */
+p, .body {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-loose);
+  color: var(--ink-soft);
+  text-wrap: pretty;
+  margin: 0;
+}
+.body--lg {
+  font-size: var(--text-md);
+  line-height: var(--leading-loose);
+}
+.body--sm {
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+}
+
+/* MANIFESTO — narrow column, serif body, used on Why/How pages */
+.manifesto {
+  font-family: var(--font-serif);
+  font-size: var(--text-md);
+  line-height: var(--leading-loose);
+  color: var(--ink-soft);
+  max-width: var(--content-narrow);
+}
+
+/* QUOTE — large pull quote */
+.quote {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: var(--text-2xl);
+  line-height: var(--leading-snug);
+  color: var(--ink);
+}
+
+/* META / CAPTION */
+.caption, small {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  line-height: var(--leading-normal);
+  color: var(--ink-faint);
+}
+
+/* MONO / KBD / CODE */
+code, kbd, .mono {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+
+/* LINKS — accent on warm bg, underline on hover only */
+a {
+  color: var(--accent);
+  text-decoration: none;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+a:hover { color: var(--accent-press); text-decoration: underline; text-underline-offset: 3px; }
+
+/* SELECTION */
+::selection { background: var(--aura-blush); color: var(--ink); }
