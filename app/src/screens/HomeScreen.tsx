@@ -14,7 +14,7 @@ interface Props {
   myOwner: OwnerId | null;
   tasks: Task[];
   onOpen: (id: string) => void;
-  onSeeAll: () => void;
+  onSeeAll: (() => void) | null;
   onSettings: () => void;
 }
 
@@ -53,7 +53,7 @@ export function HomeScreen({ role, name, myOwner, tasks, onOpen, onSeeAll, onSet
   } else {
     title = 'Yours.';
     const mine = myOwner ? open.filter(t => t.owner === myOwner).sort(sortTasks) : [];
-    sections = [{ key: 'mine', title: myOwner ? `In your name · ${mine.length}` : 'Your tasks', rows: mine, empty: myOwner ? 'Nothing in your name right now.' : 'We could not match your address to a team member. Use "See everything" below.' }];
+    sections = [{ key: 'mine', title: myOwner ? `In your name · ${mine.length}` : 'Your tasks', rows: mine, empty: myOwner ? 'Nothing in your name right now.' : 'We could not match your address to a team member yet. Ask Barbara to add you.' }];
   }
   const total = sections.reduce((n, s) => n + (s.struck ? 0 : s.rows.length), 0);
 
@@ -82,7 +82,7 @@ export function HomeScreen({ role, name, myOwner, tasks, onOpen, onSeeAll, onSet
           </div>
         </div>
       ))}
-      <div className="home-all" onClick={onSeeAll}>See everything →</div>
+      {onSeeAll && <div className="home-all" onClick={onSeeAll}>See everything →</div>}
     </div>
   );
 }

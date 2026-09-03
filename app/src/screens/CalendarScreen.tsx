@@ -41,7 +41,7 @@ export function CalendarScreen({ role, myOwner, tasks, onOpen, onSettings }: Pro
       <h1 className="h1">Calendar.</h1>
       <div className="subline-row">
         <span>{open.length} dated</span>
-        {myOwner && (
+        {myOwner && role !== 'team' && (
           <div className="mode-switch" style={{ marginLeft: 'auto' }}>
             <div className={`mode-opt${scope === 'mine' ? ' is-active' : ''}`} onClick={() => setScope('mine')}>Mine</div>
             <div className={`mode-opt${scope === 'all' ? ' is-active' : ''}`} onClick={() => setScope('all')}>Everyone</div>

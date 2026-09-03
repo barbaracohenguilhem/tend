@@ -111,6 +111,7 @@ export function patchToProperties(patch, current) {
   if (patch.owner !== undefined) props['Owner'] = rich(ownerName(patch.owner));
   if (patch.resolvedBy !== undefined) props['Resolved by'] = sel(patch.resolvedBy);
   if (patch.project !== undefined) props['Project'] = sel(patch.project);
+  if (patch.category !== undefined) props['Category'] = sel(patch.category);
   if (patch.due !== undefined || patch.time !== undefined) {
     const due = patch.due !== undefined ? patch.due : (current && current.due) || null;
     const time = patch.time !== undefined ? patch.time : (current && current.time) || null;

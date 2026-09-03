@@ -3,10 +3,10 @@ import { TabBar } from './components/TabBar';
 import { Toast } from './components/Toast';
 import type { Anim } from './components/TaskList';
 import { addDays, dayOffset, dueLabel, iso, today } from './lib/dates';
-import { ownerIds, person } from './lib/people';
-import { cycleIn, sortTasks } from './lib/sort';
+import { person } from './lib/people';
+import { sortTasks } from './lib/sort';
 import { readValue, writeJson } from './lib/storage';
-import type { Mode, OwnerId, Priority, Review, Screen, Task, TaskPatch } from './lib/types';
+import type { Mode, OwnerId, Review, Screen, Task, TaskPatch } from './lib/types';
 import { useInbox } from './store/useInbox';
 import { useSettings } from './store/useSettings';
 import { useToast } from './store/useToast';
@@ -32,8 +32,6 @@ type LastAction =
   | { type: 'review'; id: string; prev: TaskPatch }
   | { type: 'add'; id: string };
 
-const dueOpts: (number | null)[] = [0, 1, 2, 7, null];
-const prioOpts: Priority[] = ['High', 'Medium', 'Low'];
 const isHandedOff = (t: Task) => t.review === 'Approved' || t.review === 'Barbara to handle';
 
 function PhoneChrome() {
@@ -277,6 +275,8 @@ function InboxApp({ session, onSignOut }: { session: Session; onSignOut: () => v
   };
   const fi = Math.min(focusIdx, Math.max(0, focusQueue.length - 1));
   const completedCount = tasks.filter(t => t.completed).length;
+  const projects = Array.from(new Set(tasks.map(t => t.project).filter((p): p is string => !!p && p !== 'Sem projeto'))).sort();
+  const teamOnly = role === 'team';
 
   return (
     <div className="shell">
@@ -284,7 +284,7 @@ function InboxApp({ session, onSignOut }: { session: Session; onSignOut: () => v
         <PhoneChrome />
 
         {screen === 'home' && (
-          <HomeScreen role={role} name={myName} myOwner={myOwner} tasks={tasks} onOpen={openDetail} onSeeAll={() => { setFilter('all'); goTo('today'); }} onSettings={() => setSettingsOpen(true)} />
+          <HomeScreen role={role} name={myName} myOwner={myOwner} tasks={tasks} onOpen={openDetail} onSeeAll={teamOnly ? null : () => { setFilter('all'); goTo('today'); }} onSettings={() => setSettingsOpen(true)} />
         )}
         {screen === 'board' && <BoardScreen role={role} myOwner={myOwner} tasks={tasks} onMove={moveTo} onOpen={openDetail} onSettings={() => setSettingsOpen(true)} />}
         {screen === 'calendar' && <CalendarScreen role={role} myOwner={myOwner} tasks={tasks} onOpen={openDetail} onSettings={() => setSettingsOpen(true)} />}
@@ -313,14 +313,12 @@ function InboxApp({ session, onSignOut }: { session: Session; onSignOut: () => v
           <PeopleScreen tasks={tasks} openCount={open.length} onOpenOwner={id => { setOwnerId(id); goTo('owner'); }} onSettings={() => setSettingsOpen(true)} />
         )}
 
-        {showTabs && <TabBar screen={screen} mode={mode} role={role} reviewCount={reviewList.length} onGo={goTo} onAdd={() => setSheetOpen(true)} />}
+        {showTabs && <TabBar screen={screen} mode={mode} role={role} reviewCount={reviewList.length} onGo={goTo} onAdd={teamOnly ? null : () => setSheetOpen(true)} />}
 
         {detail && (
           <DetailScreen
-            task={detail} role={role} me={myName} onClose={() => setDetailId(null)}
-            onCycleOwner={() => patch(detail.id, { owner: cycleIn(ownerIds, detail.owner) })}
-            onCyclePriority={() => patch(detail.id, { priority: cycleIn(prioOpts, detail.priority ?? 'Low') })}
-            onCycleDue={() => { const cur = dayOffset(detail); const nx = cycleIn(dueOpts, dueOpts.includes(cur) ? cur : 7); patch(detail.id, { due: nx === null ? null : iso(addDays(nx)) }); }}
+            task={detail} role={role} me={myName} projects={projects} onClose={() => setDetailId(null)}
+            onPatch={p => patch(detail.id, p)}
             onSnooze={to => snooze(detail.id, to, to === 'later' ? 'Moved to later today' : to === 1 ? 'Moved to tomorrow' : 'Moved to next week', true)}
             onDecide={decide} onForward={forward} notify={show}
           />

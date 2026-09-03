@@ -104,6 +104,9 @@ export function patchToProperties(patch: TaskPatch, current?: Task): Record<stri
   if (patch.draft !== undefined) props['Response / action for approval'] = patch.draft ?? '';
   if (patch.priority !== undefined) props['Priority'] = patch.priority ?? 'No priority';
   if (patch.owner !== undefined) props['Owner'] = ownerName(patch.owner);
+  if (patch.category !== undefined) props['Category'] = patch.category;
+  if (patch.project !== undefined) props['Project'] = patch.project;
+  if (patch.resolvedBy !== undefined) props['Resolved by'] = patch.resolvedBy;
   if (patch.due !== undefined || patch.time !== undefined) {
     const due = patch.due !== undefined ? patch.due : current?.due ?? null;
     const time = patch.time !== undefined ? patch.time : current?.time ?? null;

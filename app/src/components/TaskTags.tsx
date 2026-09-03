@@ -12,6 +12,8 @@ export function TaskTags({ task, compact }: { task: Task; compact?: boolean }) {
       {task.project && task.project !== 'Sem projeto' && <span className="tag tag-project">{task.project}</span>}
       {d !== null && <span className={`tag tag-due${dueClass}`}>{d < 0 ? `Overdue · ${dueLabel(task)}` : dueLabel(task)}</span>}
       {task.priority === 'High' && <span className="tag tag-high">High</span>}
+      {task.priority === 'Medium' && <span className="tag tag-medium">Medium</span>}
+      {task.priority === 'Low' && <span className="tag tag-low">Low</span>}
     </div>
   );
 }

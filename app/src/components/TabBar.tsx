@@ -7,7 +7,7 @@ interface Props {
   role: Role;
   reviewCount: number;
   onGo: (s: Screen) => void;
-  onAdd: () => void;
+  onAdd: (() => void) | null;
 }
 
 export function TabBar({ screen, mode, role, reviewCount, onGo, onAdd }: Props) {
@@ -19,9 +19,9 @@ export function TabBar({ screen, mode, role, reviewCount, onGo, onAdd }: Props) 
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" style={{ strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' }}><path d="m3 11 9-8 9 8" /><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10" /></svg>
           {screen === 'home' && <span>{role === 'barbara' ? 'Reviewed' : role === 'carla' ? 'For you' : 'Yours'}</span>}
         </div>
-        <div className={tab(screen === 'today' || screen === 'people' || screen === 'owner')} onClick={() => onGo('today')}>
+        {role !== 'team' && <div className={tab(screen === 'today' || screen === 'people' || screen === 'owner')} onClick={() => onGo('today')}>
           <SunIcon />{(screen === 'today' || screen === 'people' || screen === 'owner') && <span>Today</span>}
-        </div>
+        </div>}
         <div className={tab(screen === 'board')} onClick={() => onGo('board')}>
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" style={{ strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' }}><rect x="3" y="3" width="5" height="18" rx="1.5" /><rect x="10" y="3" width="5" height="12" rx="1.5" /><rect x="17" y="3" width="4" height="8" rx="1.5" /></svg>
           {screen === 'board' && <span>Board</span>}
@@ -35,7 +35,7 @@ export function TabBar({ screen, mode, role, reviewCount, onGo, onAdd }: Props) 
           {reviewCount > 0 && screen !== 'review' && <span className="tab-badge">{reviewCount}</span>}
         </div>}
       </div>
-      <div className="fab" onClick={onAdd}><PlusIcon /></div>
+      {onAdd && <div className="fab" onClick={onAdd}><PlusIcon /></div>}
     </div>
   );
 }

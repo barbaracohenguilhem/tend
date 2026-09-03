@@ -54,7 +54,7 @@ export interface Person {
   keys: string[];
 }
 
-export type TaskPatch = Partial<Pick<Task, 'completed' | 'due' | 'time' | 'review' | 'feedback' | 'draft' | 'owner' | 'priority' | 'resolvedBy' | 'project'>>;
+export type TaskPatch = Partial<Pick<Task, 'completed' | 'due' | 'time' | 'review' | 'feedback' | 'draft' | 'owner' | 'priority' | 'resolvedBy' | 'project' | 'category'>>;
 
 export type RelayOp =
   | { kind: 'update'; id: string; patch: TaskPatch }

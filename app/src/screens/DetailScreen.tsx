@@ -3,9 +3,9 @@ import { Avatar } from '../components/Avatar';
 import { Chat } from '../components/Chat';
 import { BackIcon } from '../components/Icons';
 import { TaskTags } from '../components/TaskTags';
-import { dueLabel } from '../lib/dates';
-import { people, person } from '../lib/people';
-import type { OwnerId, Priority, Role, Task } from '../lib/types';
+import { FieldEditor } from '../components/FieldEditor';
+import { people } from '../lib/people';
+import type { OwnerId, Priority, Role, Task, TaskPatch } from '../lib/types';
 import { useComments } from '../store/useComments';
 
 export interface Decision { kind: 'approve' | 'reject' | 'resolved' | 'complete' | 'reopen'; reason?: string }
@@ -15,10 +15,9 @@ interface Props {
   task: Task;
   role: Role;
   me: string;
+  projects: string[];
   onClose: () => void;
-  onCycleOwner: () => void;
-  onCyclePriority: () => void;
-  onCycleDue: () => void;
+  onPatch: (p: TaskPatch) => void;
   onSnooze: (to: 'later' | 1 | 7) => void;
   onDecide: (d: Decision) => void;
   onForward: (f: Forward) => void;
@@ -28,8 +27,8 @@ interface Props {
 const dueChoices: { label: string; value: number | null }[] = [{ label: 'Today', value: 0 }, { label: 'Tomorrow', value: 1 }, { label: 'Next week', value: 7 }, { label: 'No date', value: null }];
 const prioChoices: (Priority | null)[] = ['High', 'Medium', 'Low', null];
 
-export function DetailScreen({ task: t, role, me, onClose, onCycleOwner, onCyclePriority, onCycleDue, onSnooze, onDecide, onForward, notify }: Props) {
-  const owner = person(t.owner);
+export function DetailScreen({ task: t, role, me, projects, onClose, onPatch, onSnooze, onDecide, onForward, notify }: Props) {
+  const manager = role === 'carla' || role === 'barbara';
   const chat = useComments(t.id, me);
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState('');
@@ -68,12 +67,7 @@ export function DetailScreen({ task: t, role, me, onClose, onCycleOwner, onCycle
           <div className="btn btn-white btn-sm" onClick={gmail}>Open in Gmail</div>
         </div>
 
-        <div className="kv-card">
-          <div className="kv-row with-avatar" onClick={onCycleOwner}><span className="kv-key">Owner</span><span className="kv-val"><Avatar person={owner} size={24} fs={10} /><span>{owner.short}</span></span></div>
-          <div className="kv-row" onClick={onCyclePriority}><span className="kv-key">Priority</span><span className="kv-val">{t.priority || 'None'}</span></div>
-          <div className="kv-row" onClick={onCycleDue}><span className="kv-key">Due</span><span className="kv-val">{dueLabel(t)}</span></div>
-          <div className="kv-row"><span className="kv-key">Status</span><span className="kv-val">{t.completed ? `Completed${t.resolvedBy ? ` · by ${t.resolvedBy}` : ''}` : t.review || 'Open'}</span></div>
-        </div>
+        <FieldEditor task={t} editable={manager} projects={projects} onPatch={onPatch} />
 
         <div className="eyebrow">Summary</div>
         <div className="detail-summary">{t.summary || 'No summary.'}</div>
@@ -128,12 +122,13 @@ export function DetailScreen({ task: t, role, me, onClose, onCycleOwner, onCycle
           </div>
         )}
 
-        {!forwarding ? (
+        {!manager && !t.completed && <div className="chat-note" style={{ marginTop: 18 }}>Need this changed, moved, or handed to someone else? Say so in the conversation below and Barbara will sort it out.</div>}
+        {manager && !forwarding ? (
           <div className="btn-row" style={{ marginTop: 18 }}>
             <div className="btn btn-white" onClick={() => setForwarding(true)}>Forward to someone</div>
             {!pendingDecision && role === 'carla' && !t.completed && <div className="btn btn-white" onClick={() => onDecide({ kind: 'resolved' })}>I did it myself</div>}
           </div>
-        ) : (
+        ) : manager ? (
           <div className="forward">
             <div className="eyebrow">Forward to</div>
             <div className="chip-row">
@@ -151,7 +146,7 @@ export function DetailScreen({ task: t, role, me, onClose, onCycleOwner, onCycle
               <div className="btn btn-white" onClick={() => setForwarding(false)}>Cancel</div>
             </div>
           </div>
-        )}
+        ) : null}
 
         <Chat comments={chat.comments} loading={chat.loading} error={chat.error} busy={chat.busy} available={chat.available} me={me}
           onSend={chat.send}
@@ -160,11 +155,13 @@ export function DetailScreen({ task: t, role, me, onClose, onCycleOwner, onCycle
           attachLabel={t.deliverable ? 'Attach the requested file' : 'Attach a file'} />
       </div>
       <div className="detail-bottom">
-        <div className="btn-row">
-          <div className="btn btn-white" onClick={() => onSnooze('later')}>Later today</div>
-          <div className="btn btn-white" onClick={() => onSnooze(1)}>Tomorrow</div>
-          <div className="btn btn-white" onClick={() => onSnooze(7)}>Next week</div>
-        </div>
+        {manager && (
+          <div className="btn-row">
+            <div className="btn btn-white" onClick={() => onSnooze('later')}>Later today</div>
+            <div className="btn btn-white" onClick={() => onSnooze(1)}>Tomorrow</div>
+            <div className="btn btn-white" onClick={() => onSnooze(7)}>Next week</div>
+          </div>
+        )}
         {t.completed
           ? <div className="btn btn-ink btn-big" onClick={() => onDecide({ kind: 'reopen' })}>Reopen</div>
           : <div className="btn btn-ink btn-big" onClick={() => onDecide({ kind: 'complete' })}>{role === 'barbara' ? 'Done — mark completed' : 'Mark completed'}</div>}
