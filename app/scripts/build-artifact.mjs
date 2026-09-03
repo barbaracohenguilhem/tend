@@ -9,7 +9,7 @@ const js = readdirSync(assets).filter(f => f.endsWith('.js')).map(f => readFileS
 let css = readdirSync(assets).filter(f => f.endsWith('.css')).map(f => readFileSync(join(assets, f), 'utf8')).join('\n');
 
 const fontLinks = [];
-css = css.replace(/@import\s+url\((['"]?)([^'")]+)\1\)[^;]*;/g, (_, __, url) => { fontLinks.push(url); return ''; });
+css = css.replace(/@import\s*(?:url\()?(['"]?)(https?:[^'")]+)\1\)?[^;]*;/g, (_, __, url) => { fontLinks.push(url); return ''; });
 
 const html = [
   '<title>tend</title>',
