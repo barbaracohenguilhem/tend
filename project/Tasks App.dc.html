@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="./aura/colors_and_type.css">
+<style>
+body{margin:0;background:#F6F4EF}
+a{color:#1B1815;text-decoration:none}
+a:hover{color:#F26B3A;text-decoration:underline;text-underline-offset:3px}
+input::placeholder{color:#9A958C}
+[data-scroll]::-webkit-scrollbar{display:none}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes fadeUp{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+@keyframes slideIn{from{opacity:0;transform:translateX(48px)}to{opacity:1;transform:none}}
+@keyframes sheetUp{from{opacity:0;transform:translateY(48px)}to{opacity:1;transform:none}}
+@keyframes riseIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes auraDrift{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(3%,4%) scale(1.06)}}
+@keyframes auraBreathe{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;gap:56px;padding:40px 32px;box-sizing:border-box;flex-wrap:wrap;background:var(--paper);font-family:var(--font-sans);color:var(--ink)">
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" keyboard="{{ sheetOpen }}" hint-size="402px,874px">
+<div data-screen-label="tend" style="position:relative;height:100%;overflow:hidden;background:var(--paper);color:var(--ink);font-family:var(--font-sans);z-index:1;-webkit-font-smoothing:antialiased">
+
+<sc-if value="{{ isList }}" hint-placeholder-val="{{ true }}">
+<div data-scroll="1" style="position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding:0 20px 150px;box-sizing:border-box;scrollbar-width:none">
+<sc-if value="{{ showAura }}" hint-placeholder-val="{{ true }}">
+<div style="position:absolute;top:-150px;left:-90px;width:420px;height:380px;border-radius:50%;background:radial-gradient(ellipse at 45% 45%, #FFB59A 0%, #F7C8D6 42%, rgba(247,200,214,0) 74%);filter:blur(44px);opacity:0.6;pointer-events:none;animation:auraBreathe 9s ease-in-out infinite"></div>
+</sc-if>
+<div style="position:relative;padding-top:66px">
+
+<sc-if value="{{ isToday }}" hint-placeholder-val="{{ true }}">
+<div data-screen-label="Today" style="display:flex;flex-direction:column">
+<div style="display:flex;align-items:center;justify-content:space-between">
+<div style="display:flex;align-items:center;gap:8px"><span style="width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 35%, #fff 0%, #F7C8D6 35%, #C9B8E8 70%, #A8C5F0 100%)"></span><span style="font-family:var(--font-serif);font-style:italic;font-size:19px;color:var(--ink);letter-spacing:-0.01em">tend</span></div>
+<div onClick="{{ startFocus }}" style-active="transform:scale(0.97)" style="display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;background:#fff;border:1px solid rgba(27,24,21,0.08);box-shadow:var(--shadow-xs);font-size:13px;font-weight:600;color:var(--ink);cursor:pointer;transition:transform 120ms">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
+<span>Focus</span>
+</div>
+</div>
+<h1 style="font-family:var(--font-serif);font-weight:400;font-size:42px;line-height:1;letter-spacing:-0.02em;color:var(--ink);margin:30px 0 0">Today.</h1>
+<div style="margin-top:10px;font-size:14px;color:var(--ink-mute);display:flex;gap:6px;flex-wrap:wrap"><span>{{ dateLine }}</span><span>·</span><span>{{ openLine }}</span></div>
+<div style="display:flex;gap:6px;margin-top:18px;flex-wrap:wrap">
+<sc-for list="{{ filterChips }}" as="c" hint-placeholder-count="0">
+<div onClick="{{ c.onSelect }}" style="{{ c.style }}"><sc-if value="{{ c.hasAvatar }}" hint-placeholder-val="{{ false }}"><span style="{{ c.avatarStyle }}">{{ c.initial }}</span></sc-if><span>{{ c.label }}</span></div>
+</sc-for>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isWeek }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Week" style="display:flex;flex-direction:column">
+<div style="display:flex;align-items:center;gap:8px"><span style="width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 35%, #fff 0%, #F7C8D6 35%, #C9B8E8 70%, #A8C5F0 100%)"></span><span style="font-family:var(--font-serif);font-style:italic;font-size:19px;color:var(--ink);letter-spacing:-0.01em">tend</span></div>
+<h1 style="font-family:var(--font-serif);font-weight:400;font-size:42px;line-height:1;letter-spacing:-0.02em;color:var(--ink);margin:30px 0 0">Week.</h1>
+<div style="margin-top:10px;font-size:14px;color:var(--ink-mute)">{{ weekRange }}</div>
+<div style="display:flex;gap:4px;margin-top:20px">
+<sc-for list="{{ weekDays }}" as="d" hint-placeholder-count="7">
+<div onClick="{{ d.onSelect }}" style="{{ d.style }}">
+<span style="font-size:11px;font-weight:600;opacity:0.6">{{ d.label }}</span>
+<span style="font-size:16px;font-weight:600">{{ d.num }}</span>
+<div style="display:flex;gap:3px;height:4px"><sc-for list="{{ d.dots }}" as="x" hint-placeholder-count="0"><span style="width:4px;height:4px;border-radius:50%;background:currentColor;opacity:0.7"></span></sc-for></div>
+</div>
+</sc-for>
+</div>
+<div style="margin-top:26px;margin-bottom:-8px;font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-mute)">{{ weekSelLabel }}</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isProject }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Project" style="display:flex;flex-direction:column">
+<div style="display:flex;align-items:center;justify-content:space-between">
+<div onClick="{{ goProjects }}" style-active="transform:scale(0.95)" style="width:40px;height:40px;border-radius:999px;background:#fff;border:1px solid rgba(27,24,21,0.08);box-shadow:var(--shadow-xs);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink);transition:transform 120ms">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><path d="m15 18-6-6 6-6"></path></svg>
+</div>
+<span style="font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-mute)">Project</span>
+<div style="width:40px"></div>
+</div>
+<h1 style="font-family:var(--font-serif);font-weight:400;font-size:36px;line-height:1.05;letter-spacing:-0.02em;color:var(--ink);margin:28px 0 0">{{ proj.name }}</h1>
+<div style="margin-top:10px;font-size:14px;color:var(--ink-mute)">{{ proj.meta }}</div>
+<div style="margin-top:16px;height:4px;border-radius:999px;background:var(--bone);overflow:hidden"><div style="{{ proj.fillStyle }}"></div></div>
+</div>
+</sc-if>
+
+</div>
+
+<sc-if value="{{ hasRows }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;flex-direction:column;gap:8px;margin-top:20px">
+<sc-for list="{{ rows }}" as="t" hint-placeholder-count="5">
+<div style="position:relative;border-radius:18px">
+<div style="{{ t.dragStyle }}">
+<div style="position:absolute;inset:0;border-radius:18px;overflow:hidden;display:flex">
+<div style="flex:1;background:#B8E0CA;display:flex;align-items:center;gap:8px;padding-left:22px;font-size:13px;font-weight:600;color:var(--ink)">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round"><path d="M20 6 9 17l-5-5"></path></svg>
+<span>Done</span>
+</div>
+<div style="flex:1;background:#C9B8E8;display:flex;align-items:center;justify-content:flex-end;gap:8px;padding-right:22px;font-size:13px;font-weight:600;color:var(--ink)">
+<span>Tomorrow</span>
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>
+</div>
+</div>
+<div style="{{ t.swipeStyle }}">
+<div onPointerDown="{{ t.onDown }}" onPointerMove="{{ t.onMove }}" onPointerUp="{{ t.onUp }}" onPointerCancel="{{ t.onCancel }}" style="position:relative;background:#fff;border-radius:18px;box-shadow:var(--shadow-xs);display:flex;align-items:center;gap:12px;padding:12px 6px 12px 14px;touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:pointer">
+<div data-check="1" style="{{ t.checkStyle }}"><sc-if value="{{ t.checked }}" hint-placeholder-val="{{ false }}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round"><path d="M20 6 9 17l-5-5"></path></svg></sc-if></div>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+<div style="font-size:16px;font-weight:500;color:var(--ink);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.title }}</div>
+<sc-if value="{{ showMeta }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-mute);line-height:1.2"><span style="{{ t.dotStyle }}"></span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.metaText }}</span></div>
+</sc-if>
+</div>
+<div style="{{ t.ownerStyle }}">{{ t.ownerInitial }}</div>
+<div data-grip="1" style="width:30px;height:38px;display:flex;align-items:center;justify-content:center;color:var(--linen);cursor:grab;touch-action:none;flex:none">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="9" cy="6" r="1.6"></circle><circle cx="9" cy="12" r="1.6"></circle><circle cx="9" cy="18" r="1.6"></circle><circle cx="15" cy="6" r="1.6"></circle><circle cx="15" cy="12" r="1.6"></circle><circle cx="15" cy="18" r="1.6"></circle></svg>
+</div>
+</div>
+</div>
+</div>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ rowsEmpty }}" hint-placeholder-val="{{ false }}">
+<div style="margin-top:36px;padding:30px 20px;border-radius:24px;background:#fff;box-shadow:var(--shadow-xs);text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center">
+<span style="font-family:var(--font-serif);font-style:italic;font-size:22px;color:var(--ink);line-height:1.2">{{ emptyTitle }}</span>
+<span onClick="{{ openSheet }}" style="font-size:13px;font-weight:600;color:var(--ink-mute);cursor:pointer;text-decoration:underline;text-underline-offset:3px">Add a task</span>
+</div>
+</sc-if>
+
+<sc-if value="{{ hasRows2 }}" hint-placeholder-val="{{ true }}">
+<div style="margin-top:28px;font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-mute)">{{ rows2Label }}</div>
+<div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
+<sc-for list="{{ rows2 }}" as="t" hint-placeholder-count="2">
+<div onClick="{{ t.onOpen }}" style="background:#fff;border-radius:18px;box-shadow:var(--shadow-xs);display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer">
+<div onClick="{{ t.onToggle }}" style="{{ t.checkStyle }}"><sc-if value="{{ t.checked }}" hint-placeholder-val="{{ false }}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round"><path d="M20 6 9 17l-5-5"></path></svg></sc-if></div>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+<div style="{{ t.titleStyle }}">{{ t.title }}</div>
+<sc-if value="{{ showMeta }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-faint);line-height:1.2"><span style="{{ t.dotStyle }}"></span><span>{{ t.metaText }}</span></div>
+</sc-if>
+</div>
+<div style="{{ t.ownerStyle }}">{{ t.ownerInitial }}</div>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ isProjects }}" hint-placeholder-val="{{ false }}">
+<div data-scroll="1" data-screen-label="Projects" style="position:absolute;inset:0;overflow-y:auto;padding:66px 20px 150px;box-sizing:border-box;scrollbar-width:none;animation:fadeIn 240ms">
+<div style="display:flex;align-items:center;gap:8px"><span style="width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 35%, #fff 0%, #F7C8D6 35%, #C9B8E8 70%, #A8C5F0 100%)"></span><span style="font-family:var(--font-serif);font-style:italic;font-size:19px;color:var(--ink);letter-spacing:-0.01em">tend</span></div>
+<h1 style="font-family:var(--font-serif);font-weight:400;font-size:42px;line-height:1;letter-spacing:-0.02em;color:var(--ink);margin:30px 0 0">Projects.</h1>
+<div style="margin-top:10px;font-size:14px;color:var(--ink-mute)">{{ projectsLine }}</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:22px">
+<sc-for list="{{ projectCards }}" as="p" hint-placeholder-count="4">
+<div onClick="{{ p.onOpen }}" style-active="transform:scale(0.98)" style="background:#fff;border-radius:24px;padding:18px;box-shadow:var(--shadow-md);display:flex;flex-direction:column;gap:12px;min-height:160px;cursor:pointer;box-sizing:border-box;transition:transform 120ms">
+<span style="{{ p.dotStyle }}"></span>
+<div style="display:flex;flex-direction:column;gap:4px;flex:1">
+<span style="font-family:var(--font-serif);font-size:20px;line-height:1.15;letter-spacing:-0.01em;color:var(--ink)">{{ p.name }}</span>
+<span style="font-size:12px;color:var(--ink-mute)">{{ p.openLabel }}</span>
+</div>
+<div style="height:4px;border-radius:999px;background:var(--bone);overflow:hidden"><div style="{{ p.fillStyle }}"></div></div>
+<div style="display:flex;padding-left:6px"><sc-for list="{{ p.owners }}" as="o" hint-placeholder-count="0"><span style="{{ o.style }}">{{ o.initial }}</span></sc-for></div>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ showTabs }}" hint-placeholder-val="{{ true }}">
+<div style="position:absolute;left:0;right:0;bottom:36px;display:flex;justify-content:center;align-items:center;gap:10px;z-index:20;pointer-events:none">
+<div style="pointer-events:auto;display:flex;gap:2px;padding:5px;border-radius:999px;background:rgba(255,255,255,0.62);backdrop-filter:blur(24px) saturate(150%);-webkit-backdrop-filter:blur(24px) saturate(150%);border:1px solid rgba(255,255,255,0.75);box-shadow:0 1px 0 rgba(255,255,255,0.5) inset, 0 12px 32px rgba(27,24,21,0.12)">
+<div onClick="{{ goToday }}" style="{{ tabToday }}">
+<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>
+<span>Today</span>
+</div>
+<div onClick="{{ goWeek }}" style="{{ tabWeek }}">
+<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="3"></rect><path d="M3 10h18"></path></svg>
+<span>Week</span>
+</div>
+<div onClick="{{ goProjects }}" style="{{ tabProjects }}">
+<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><rect width="7" height="7" x="3" y="3" rx="2"></rect><rect width="7" height="7" x="14" y="3" rx="2"></rect><rect width="7" height="7" x="14" y="14" rx="2"></rect><rect width="7" height="7" x="3" y="14" rx="2"></rect></svg>
+<span>Projects</span>
+</div>
+</div>
+<div onClick="{{ openSheet }}" style-active="transform:scale(0.94)" style="pointer-events:auto;width:52px;height:52px;border-radius:999px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 28px rgba(242,107,58,0.35);cursor:pointer;transition:transform 120ms">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Task detail" style="position:absolute;inset:0;background:var(--paper);z-index:25;display:flex;flex-direction:column;animation:slideIn 300ms cubic-bezier(0.2,0.8,0.3,1)">
+<div style="padding:66px 20px 0;display:flex;align-items:center;justify-content:space-between">
+<div onClick="{{ closeDetail }}" style-active="transform:scale(0.95)" style="width:40px;height:40px;border-radius:999px;background:#fff;border:1px solid rgba(27,24,21,0.08);box-shadow:var(--shadow-xs);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink);transition:transform 120ms">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><path d="m15 18-6-6 6-6"></path></svg>
+</div>
+<span style="font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-mute)">{{ detail.statusLabel }}</span>
+<div style="width:40px"></div>
+</div>
+<div data-scroll="1" style="flex:1;overflow-y:auto;padding:26px 20px 200px;scrollbar-width:none">
+<h1 style="font-family:var(--font-serif);font-weight:400;font-size:32px;line-height:1.1;letter-spacing:-0.02em;color:var(--ink);margin:0;text-wrap:pretty">{{ detail.title }}</h1>
+<div style="margin-top:24px;background:#fff;border-radius:22px;box-shadow:var(--shadow-xs);display:flex;flex-direction:column">
+<div onClick="{{ cycleProject }}" style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid rgba(27,24,21,0.06);cursor:pointer">
+<span style="font-size:13px;color:var(--ink-mute)">Project</span>
+<span style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:500;color:var(--ink)"><span style="{{ detail.dotStyle }}"></span><span>{{ detail.projectName }}</span></span>
+</div>
+<div onClick="{{ cycleOwner }}" style="display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid rgba(27,24,21,0.06);cursor:pointer">
+<span style="font-size:13px;color:var(--ink-mute)">Owner</span>
+<span style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:500;color:var(--ink)"><span style="{{ detail.ownerStyle }}">{{ detail.ownerInitial }}</span><span>{{ detail.ownerName }}</span></span>
+</div>
+<div onClick="{{ cycleDue }}" style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;cursor:pointer">
+<span style="font-size:13px;color:var(--ink-mute)">Due</span>
+<span style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:500;color:var(--ink)">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="3"></rect><path d="M3 10h18"></path></svg>
+<span>{{ detail.dueLabel }}</span>
+</span>
+</div>
+</div>
+<div style="margin-top:26px;font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-mute)">Notes</div>
+<sc-if value="{{ detail.hasNotes }}" hint-placeholder-val="{{ false }}"><div style="margin-top:10px;font-size:15px;line-height:1.6;color:var(--ink-soft);text-wrap:pretty">{{ detail.notes }}</div></sc-if>
+<sc-if value="{{ detail.noNotes }}" hint-placeholder-val="{{ false }}"><div style="margin-top:10px;font-family:var(--font-serif);font-style:italic;font-size:16px;color:var(--ink-faint)">No notes yet.</div></sc-if>
+<sc-if value="{{ detail.hasSubs }}" hint-placeholder-val="{{ false }}">
+<div style="margin-top:26px;font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-mute)">{{ detail.subLabel }}</div>
+<div style="margin-top:10px;background:#fff;border-radius:22px;box-shadow:var(--shadow-xs);display:flex;flex-direction:column;padding:4px 0">
+<sc-for list="{{ detail.subtasks }}" as="s" hint-placeholder-count="0">
+<div onClick="{{ s.onToggle }}" style="display:flex;align-items:center;gap:12px;padding:11px 18px;cursor:pointer">
+<div style="{{ s.checkStyle }}"><sc-if value="{{ s.done }}" hint-placeholder-val="{{ false }}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2.8;stroke-linecap:round;stroke-linejoin:round"><path d="M20 6 9 17l-5-5"></path></svg></sc-if></div>
+<span style="{{ s.titleStyle }}">{{ s.label }}</span>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+<div style="position:absolute;left:0;right:0;bottom:0;padding:28px 20px 44px;display:flex;flex-direction:column;gap:12px;background:linear-gradient(180deg, rgba(246,244,239,0) 0%, #F6F4EF 32%)">
+<div style="display:flex;gap:8px">
+<div onClick="{{ snoozeLater }}" style-active="transform:scale(0.97)" style="flex:1;padding:11px 0;border-radius:999px;background:#fff;border:1px solid rgba(27,24,21,0.1);font-size:13px;font-weight:600;color:var(--ink);text-align:center;cursor:pointer;transition:transform 120ms">Later today</div>
+<div onClick="{{ snoozeTomorrow }}" style-active="transform:scale(0.97)" style="flex:1;padding:11px 0;border-radius:999px;background:#fff;border:1px solid rgba(27,24,21,0.1);font-size:13px;font-weight:600;color:var(--ink);text-align:center;cursor:pointer;transition:transform 120ms">Tomorrow</div>
+<div onClick="{{ snoozeNextWeek }}" style-active="transform:scale(0.97)" style="flex:1;padding:11px 0;border-radius:999px;background:#fff;border:1px solid rgba(27,24,21,0.1);font-size:13px;font-weight:600;color:var(--ink);text-align:center;cursor:pointer;transition:transform 120ms">Next week</div>
+</div>
+<div onClick="{{ detailPrimary }}" style-active="transform:scale(0.97)" style="height:54px;border-radius:999px;background:var(--ink);color:var(--paper);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;cursor:pointer;box-shadow:0 12px 28px rgba(27,24,21,0.18);transition:transform 120ms">{{ detail.primaryLabel }}</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isFocus }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Focus" style="position:absolute;inset:0;z-index:26;background:var(--paper-cool);overflow:hidden;display:flex;flex-direction:column;animation:fadeIn 320ms">
+<div style="position:absolute;inset:-25%;background:radial-gradient(ellipse 55% 50% at 30% 35%, #C9B8E8 0%, #F7C8D6 45%, rgba(247,200,214,0) 78%), radial-gradient(ellipse 45% 45% at 78% 72%, #A8C5F0 0%, rgba(168,197,240,0) 72%);filter:blur(48px);animation:auraDrift 14s ease-in-out infinite;pointer-events:none"></div>
+<div style="position:relative;padding:66px 20px 0;display:flex;align-items:center;justify-content:space-between">
+<div onClick="{{ exitFocus }}" style-active="transform:scale(0.95)" style="width:40px;height:40px;border-radius:999px;background:rgba(255,255,255,0.45);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.6);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink);transition:transform 120ms">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+</div>
+<div style="padding:9px 14px;border-radius:999px;background:rgba(255,255,255,0.45);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.6);font-size:12px;font-weight:600;color:var(--ink)">{{ focus.counter }}</div>
+</div>
+<div style="position:relative;flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 28px">
+<div style="{{ focus.fadeStyle }}">
+<span style="font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-mute)">{{ focus.projectName }}</span>
+<h1 style="font-family:var(--font-serif);font-weight:400;font-size:38px;line-height:1.05;letter-spacing:-0.02em;color:var(--ink);margin:0;text-wrap:pretty">{{ focus.title }}</h1>
+<div style="display:flex;align-items:center;gap:10px;font-size:14px;color:var(--ink-mute);margin-top:4px"><span style="{{ focus.ownerStyle }}">{{ focus.ownerInitial }}</span><span>{{ focus.meta }}</span></div>
+</div>
+</div>
+<div style="position:relative;padding:0 20px 48px;display:flex;flex-direction:column;gap:10px">
+<div onClick="{{ focusDone }}" style-active="transform:scale(0.97)" style="height:54px;border-radius:999px;background:var(--ink);color:var(--paper);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;cursor:pointer;box-shadow:0 12px 28px rgba(27,24,21,0.18);transition:transform 120ms">Done</div>
+<div style="display:flex;gap:8px">
+<div onClick="{{ focusLater }}" style-active="transform:scale(0.97)" style="flex:1;padding:13px 0;border-radius:999px;background:rgba(255,255,255,0.5);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.7);font-size:13px;font-weight:600;color:var(--ink);text-align:center;cursor:pointer;transition:transform 120ms">Tomorrow</div>
+<div onClick="{{ focusSkip }}" style-active="transform:scale(0.97)" style="flex:1;padding:13px 0;border-radius:999px;background:rgba(255,255,255,0.5);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.7);font-size:13px;font-weight:600;color:var(--ink);text-align:center;cursor:pointer;transition:transform 120ms">Skip</div>
+</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isDone }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="All done" style="position:absolute;inset:0;z-index:27;background:var(--paper);overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 32px;animation:fadeIn 600ms">
+<div style="position:absolute;inset:-15%;background:radial-gradient(ellipse 60% 55% at 50% 42%, #FFE3A8 0%, #FFB59A 22%, #F7C8D6 48%, #C9B8E8 70%, rgba(201,184,232,0) 88%);filter:blur(46px);animation:auraBreathe 8s ease-in-out infinite;pointer-events:none"></div>
+<div style="position:absolute;top:66px;left:24px;display:flex;align-items:center;gap:8px"><span style="width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 35%, #fff 0%, #F7C8D6 35%, #C9B8E8 70%, #A8C5F0 100%)"></span><span style="font-family:var(--font-serif);font-style:italic;font-size:19px;color:var(--ink);letter-spacing:-0.01em">tend</span></div>
+<div style="position:relative;display:flex;flex-direction:column;align-items:center;gap:14px;animation:riseIn 700ms cubic-bezier(0.2,0.8,0.3,1) both">
+<span style="font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-mute)">{{ dateLine }}</span>
+<h1 style="font-family:var(--font-serif);font-weight:400;font-style:italic;font-size:46px;line-height:1;letter-spacing:-0.02em;color:var(--ink);margin:0;text-wrap:balance">All done for today.</h1>
+<div style="font-size:15px;color:var(--ink-soft);margin-top:4px">{{ doneSummary }}</div>
+<div style="display:flex;margin-top:10px;padding-left:8px"><sc-for list="{{ teamAvatars }}" as="o" hint-placeholder-count="0"><span style="{{ o.style }}">{{ o.initial }}</span></sc-for></div>
+</div>
+<div style="position:absolute;left:20px;right:20px;bottom:48px;display:flex;flex-direction:column;gap:12px;align-items:stretch">
+<div onClick="{{ planTomorrow }}" style-active="transform:scale(0.97)" style="height:54px;border-radius:999px;background:var(--ink);color:var(--paper);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;cursor:pointer;box-shadow:0 12px 28px rgba(27,24,21,0.18);transition:transform 120ms">Plan tomorrow</div>
+<span onClick="{{ goToday }}" style="font-size:13px;font-weight:600;color:var(--ink-mute);cursor:pointer;padding:6px 12px;text-align:center">Back to today</span>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ sheetOpen }}" hint-placeholder-val="{{ false }}">
+<div onClick="{{ closeSheet }}" style="position:absolute;inset:0;background:rgba(27,24,21,0.3);z-index:30;animation:fadeIn 220ms"></div>
+<div data-screen-label="Quick add" style="position:absolute;left:8px;right:8px;bottom:8px;z-index:31;background:#fff;border-radius:28px;padding:14px 20px 16px;box-shadow:var(--shadow-xl);display:flex;flex-direction:column;gap:14px;animation:sheetUp 340ms cubic-bezier(0.2,0.8,0.3,1)">
+<div style="width:36px;height:4px;border-radius:2px;background:var(--linen);margin:0 auto"></div>
+<input ref="{{ inputRef }}" value="{{ draft }}" onChange="{{ onDraft }}" onKeyDown="{{ onDraftKey }}" placeholder="New task — try “Call Mara tomorrow 9am”" style="border:none;outline:none;background:transparent;font-family:var(--font-sans);font-size:18px;color:var(--ink);padding:6px 0;width:100%;box-sizing:border-box">
+<div style="display:flex;gap:6px;flex-wrap:wrap">
+<div onClick="{{ cycleDraftDue }}" style="{{ dueChip.style }}">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="3"></rect><path d="M3 10h18"></path></svg>
+<span>{{ dueChip.label }}</span>
+</div>
+<div onClick="{{ cycleDraftOwner }}" style="{{ ownerChip.style }}"><span style="{{ ownerChip.avatarStyle }}">{{ ownerChip.initial }}</span><span>{{ ownerChip.label }}</span></div>
+<div onClick="{{ cycleDraftProject }}" style="{{ projectChip.style }}"><span style="{{ projectChip.dotStyle }}"></span><span>{{ projectChip.label }}</span></div>
+</div>
+<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:2px">
+<span style="font-size:12px;color:var(--ink-faint);line-height:1.4">Dates, times, @people and #projects are picked up as you type. Tap a chip to change it.</span>
+<div onClick="{{ addTask }}" style-active="transform:scale(0.97)" style="{{ addBtnStyle }}">Add</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;left:50%;bottom:108px;transform:translateX(-50%);z-index:40;display:flex;align-items:center;gap:16px;padding:12px 18px;border-radius:999px;background:rgba(27,24,21,0.92);color:var(--paper);font-size:13px;font-weight:500;box-shadow:var(--shadow-lg);white-space:nowrap;animation:fadeUp 260ms cubic-bezier(0.2,0.8,0.3,1)">
+<span>{{ toast.text }}</span>
+<sc-if value="{{ toast.canUndo }}" hint-placeholder-val="{{ false }}"><span onClick="{{ undo }}" style="color:#FFB59A;font-weight:700;cursor:pointer">Undo</span></sc-if>
+</div>
+</sc-if>
+
+</div>
+</x-import>
+
+<aside style="width:250px;display:flex;flex-direction:column;gap:24px;font-size:13px;line-height:1.6;color:var(--ink-mute)">
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:center;gap:9px"><span style="width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 35% 35%, #fff 0%, #F7C8D6 35%, #C9B8E8 70%, #A8C5F0 100%)"></span><span style="font-family:var(--font-serif);font-style:italic;font-size:26px;color:var(--ink);letter-spacing:-0.01em">tend</span></div>
+<span style="color:var(--ink-soft)">Shared tasks for a small team. One Today list, an owner on every task.</span>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px">
+<span style="font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-faint)">Try</span>
+<span>Swipe a task right to finish it, left to push it to tomorrow.</span>
+<span>Hold the grip at the right of a task to reorder.</span>
+<span>Tap + and type “Call Mara tomorrow 9am @Theo #ops”.</span>
+<span>Focus walks through today one task at a time.</span>
+<span>Finish everything to reach the all-done screen.</span>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px">
+<span style="font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-faint)">Assumptions</span>
+<span>Team of four, iOS, plain copy, sample data. Fonts are the Aura substitutes — Newsreader and Manrope.</span>
+</div>
+</aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;startScreen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;today&quot;,&quot;options&quot;:[&quot;today&quot;,&quot;week&quot;,&quot;projects&quot;,&quot;focus&quot;,&quot;done&quot;],&quot;tsType&quot;:&quot;'today'|'week'|'projects'|'focus'|'done'&quot;,&quot;section&quot;:&quot;Navigation&quot;},&quot;headerAura&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Look&quot;},&quot;density&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;comfortable&quot;,&quot;options&quot;:[&quot;comfortable&quot;,&quot;compact&quot;],&quot;tsType&quot;:&quot;'comfortable'|'compact'&quot;,&quot;section&quot;:&quot;Look&quot;},&quot;allDoneScreen&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Behavior&quot;}}">
+class Component extends DCLogic {
+  people = [
+    { id: 'you', name: 'You', initial: 'Y', bg: 'linear-gradient(135deg,#FFB59A,#F7C8D6)' },
+    { id: 'mara', name: 'Mara', initial: 'M', bg: 'linear-gradient(135deg,#C9B8E8,#A8C5F0)' },
+    { id: 'theo', name: 'Theo', initial: 'T', bg: 'linear-gradient(135deg,#B8E0CA,#FFE3A8)' },
+    { id: 'ines', name: 'Ines', initial: 'I', bg: 'linear-gradient(135deg,#E89BB5,#FFB59A)' },
+  ];
+  projects = [
+    { id: 'web', name: 'Website relaunch', color: '#FF8C6B', tags: ['#web', 'website', 'homepage', 'pricing', 'changelog'] },
+    { id: 'q4', name: 'Q4 planning', color: '#9D8AD9', tags: ['#q4', 'q4', 'offsite', 'board'] },
+    { id: 'hiring', name: 'Hiring', color: '#6E9BE0', tags: ['#hiring', 'hiring', 'interview', 'offer', 'candidate'] },
+    { id: 'ops', name: 'Ops', color: '#B8E0CA', tags: ['#ops', 'ops', 'invoice', 'domain', 'vendor'] },
+  ];
+  dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  today = (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; })();
+  inputRef = React.createRef();
+  state = {
+    screen: 'today', filter: 'all', weekSel: 0, projectId: 'web', detailId: null,
+    focusIdx: 0, focusOut: false,
+    sheetOpen: false, draft: '', draftDue: undefined, draftOwner: null, draftProject: undefined,
+    gesture: null, anim: null, toast: null,
+    tasks: [
+      { id: 1, title: 'Review homepage copy', project: 'web', owner: 'you', due: 0, time: '10:00', notes: 'Mara’s draft is in the shared doc. Check the tone against the brand page before it goes to design.', subtasks: [{ t: 'Hero section', done: true }, { t: 'Pricing section', done: false }] },
+      { id: 2, title: 'Send offer letter to Priya', project: 'hiring', owner: 'mara', due: 0, time: '11:30', notes: 'Salary band approved by Theo on Monday.' },
+      { id: 3, title: 'Confirm venue for the offsite', project: 'q4', owner: 'theo', due: 0, subtasks: [{ t: 'Call Loft 21', done: false }, { t: 'Send deposit', done: false }] },
+      { id: 4, title: 'Update pricing page', project: 'web', owner: 'you', due: 0, time: '14:00' },
+      { id: 5, title: 'Renew domain', project: 'ops', owner: 'ines', due: 0, time: '17:00', notes: 'Expires on the 5th. Card on file ends in 4471.' },
+      { id: 6, title: 'Draft board update', project: 'q4', owner: 'you', due: 0, notes: 'Three slides max — numbers, hiring, next quarter.' },
+      { id: 7, title: 'Approve invoice #218', project: 'ops', owner: 'mara', due: 0, time: '09:00', done: true },
+      { id: 8, title: 'Fix footer link', project: 'web', owner: 'theo', due: 0, done: true },
+      { id: 9, title: 'Interview — Sam K.', project: 'hiring', owner: 'mara', due: 1, time: '09:30' },
+      { id: 10, title: 'QA pass on mobile nav', project: 'web', owner: 'you', due: 1 },
+      { id: 11, title: 'Offsite agenda v1', project: 'q4', owner: 'theo', due: 2 },
+      { id: 12, title: 'Monthly ops review', project: 'ops', owner: 'ines', due: 3, time: '15:00' },
+      { id: 13, title: 'Publish changelog', project: 'web', owner: 'you', due: 3 },
+      { id: 14, title: 'Prep 1:1 notes', project: 'q4', owner: 'you', due: 5 },
+      { id: 15, title: 'Refresh brand deck', project: 'q4', owner: 'mara', due: null },
+      { id: 16, title: 'Pick laptop vendor', project: 'ops', owner: 'ines', due: null },
+    ].map(t => ({ done: false, notes: '', subtasks: [], time: null, ...t })),
+  };
+
+  componentDidMount() { this.applyStart(this.props.startScreen); }
+  componentDidUpdate(prev) {
+    if (prev.startScreen !== this.props.startScreen) this.applyStart(this.props.startScreen);
+    if (this.state.sheetOpen && !this.prevSheet && this.inputRef.current) this.inputRef.current.focus();
+    this.prevSheet = this.state.sheetOpen;
+  }
+  componentWillUnmount() { clearTimeout(this.toastTimer); clearTimeout(this.animTimer); clearTimeout(this.doneTimer); clearTimeout(this.focusTimer); }
+  applyStart(s) {
+    if (!s || s === this.state.screen) return;
+    if (s === 'focus') this.startFocus(); else this.setState({ screen: s, detailId: null, sheetOpen: false });
+  }
+
+  // ---- helpers
+  addDays(n) { const d = new Date(this.today); d.setDate(d.getDate() + n); return d; }
+  person(id) { return this.people.find(p => p.id === id) || this.people[0]; }
+  project(id) { return this.projects.find(p => p.id === id) || null; }
+  isTodayTask(t) { return t.due !== null && t.due !== undefined && t.due <= 0; }
+  dueLabel(t) {
+    let s;
+    const d = t.due;
+    if (d === null || d === undefined) s = 'Someday';
+    else if (d === 0) s = 'Today';
+    else if (d === 1) s = 'Tomorrow';
+    else if (d === -1) s = 'Yesterday';
+    else if (d < -1) s = `${-d} days ago`;
+    else if (d < 7) s = this.dayNames[this.addDays(d).getDay()];
+    else { const dt = this.addDays(d); s = `${dt.getDate()} ${this.monthNames[dt.getMonth()].slice(0, 3)}`; }
+    return t.time ? `${s}, ${t.time}` : s;
+  }
+  avatarStyle(p, size, fs, extra) {
+    return { width: size, height: size, borderRadius: '50%', flex: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: fs, fontWeight: 700, color: 'var(--ink)', background: p.bg, boxSizing: 'border-box', ...(extra || {}) };
+  }
+  smallCheck(done) {
+    return { width: 20, height: 20, borderRadius: '50%', flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box', color: 'var(--ink)', transition: 'all 240ms', border: done ? '1.5px solid transparent' : '1.5px solid rgba(27,24,21,0.28)', background: done ? 'linear-gradient(135deg,#B8E0CA,#A8C5F0)' : 'transparent' };
+  }
+  toast(text, canUndo) {
+    clearTimeout(this.toastTimer);
+    this.setState({ toast: { text, canUndo: !!canUndo } });
+    this.toastTimer = setTimeout(() => this.setState({ toast: null }), 3400);
+  }
+  updateTask(id, patch, cb) { this.setState(s => ({ tasks: s.tasks.map(t => t.id === id ? { ...t, ...patch } : t) }), cb); }
+
+  // ---- lists
+  listRows() {
+    const s = this.state;
+    if (s.screen === 'today') return s.tasks.filter(t => !t.done && this.isTodayTask(t) && (s.filter === 'all' || t.owner === s.filter));
+    if (s.screen === 'week') return s.tasks.filter(t => !t.done && t.due === s.weekSel);
+    if (s.screen === 'project') return s.tasks.filter(t => !t.done && t.project === s.projectId);
+    return [];
+  }
+  listRows2() {
+    const s = this.state;
+    if (s.screen === 'today') return s.tasks.filter(t => t.done && this.isTodayTask(t) && (s.filter === 'all' || t.owner === s.filter));
+    if (s.screen === 'week') return s.tasks.filter(t => !t.done && t.due === null);
+    if (s.screen === 'project') return s.tasks.filter(t => t.done && t.project === s.projectId);
+    return [];
+  }
+  shiftFor(i, g) {
+    if (g.from < g.to && i > g.from && i <= g.to) return -g.slot;
+    if (g.from > g.to && i >= g.to && i < g.from) return g.slot;
+    return 0;
+  }
+  decorate(t, i, primary) {
+    const s = this.state, g = s.gesture;
+    const anim = s.anim && s.anim.id === t.id ? s.anim.type : null;
+    const proj = this.project(t.project), owner = this.person(t.owner);
+    const ease = 'cubic-bezier(0.2,0.8,0.3,1)';
+    let dragStyle = { position: 'relative', borderRadius: 18, transform: 'translateY(0)', transition: `transform 220ms ${ease}, box-shadow 200ms` };
+    let swipeStyle = { position: 'relative', transform: 'translateX(0)', opacity: 1, transition: `transform 280ms ${ease}, opacity 400ms` };
+    if (primary && g && g.type === 'drag') {
+      if (g.id === t.id) dragStyle = { ...dragStyle, transform: `translateY(${g.dy}px) scale(1.02)`, zIndex: 5, boxShadow: '0 18px 48px rgba(27,24,21,0.14)', transition: 'box-shadow 200ms' };
+      else dragStyle = { ...dragStyle, transform: `translateY(${this.shiftFor(i, g)}px)` };
+    }
+    if (primary && g && g.type === 'swipe' && g.id === t.id && g.moved) swipeStyle = { ...swipeStyle, transform: `translateX(${g.dx}px)`, transition: 'none' };
+    if (anim === 'complete') swipeStyle = { ...swipeStyle, transform: 'translateX(0)', opacity: 0.35 };
+    if (anim === 'snooze') swipeStyle = { ...swipeStyle, transform: 'translateX(-110%)', opacity: 0, transition: `transform 300ms ${ease}, opacity 300ms` };
+    const checked = t.done || anim === 'complete';
+    const checkStyle = { width: 26, height: 26, borderRadius: '50%', flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box', color: 'var(--ink)', transition: 'all 280ms', border: checked ? '1.5px solid transparent' : '1.5px solid rgba(27,24,21,0.28)', background: checked ? 'linear-gradient(135deg,#B8E0CA,#A8C5F0)' : 'transparent', boxShadow: anim === 'complete' ? '0 0 24px 6px rgba(184,224,202,0.6)' : 'none' };
+    const pn = proj ? proj.name : 'No project';
+    let metaText;
+    if (s.screen === 'project') metaText = this.dueLabel(t);
+    else if (!t.done && t.due !== null && t.due < 0) metaText = `${pn} · ${this.dueLabel({ due: t.due })}`;
+    else metaText = t.time ? `${pn} · ${t.time}` : pn;
+    return {
+      key: t.id, id: t.id, title: t.title, checked, checkStyle, metaText, dragStyle, swipeStyle,
+      dotStyle: { width: 7, height: 7, borderRadius: '50%', flex: 'none', background: proj ? proj.color : 'var(--linen)' },
+      ownerStyle: this.avatarStyle(owner, 28, 11), ownerInitial: owner.initial,
+      titleStyle: { fontSize: 16, fontWeight: 500, lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: t.done ? 'var(--ink-faint)' : 'var(--ink)', textDecoration: t.done ? 'line-through' : 'none' },
+      onDown: e => this.rowDown(e, t.id), onMove: e => this.rowMove(e, t.id), onUp: e => this.rowUp(e, t.id), onCancel: e => this.rowCancel(e, t.id),
+      onOpen: () => this.openDetail(t.id), onToggle: e => { e.stopPropagation(); this.complete(t.id); },
+    };
+  }
+
+  // ---- gestures: swipe + drag
+  rowDown(e, id) {
+    if (e.button !== undefined && e.button !== 0) return;
+    if (this.state.anim && this.state.anim.id === id) return;
+    const target = e.target;
+    const isGrip = !!(target.closest && target.closest('[data-grip]'));
+    const isCheck = !!(target.closest && target.closest('[data-check]'));
+    const rows = this.listRows();
+    const idx = rows.findIndex(t => t.id === id);
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
+    const rect = e.currentTarget.getBoundingClientRect();
+    this.setState({ gesture: { type: isGrip ? 'drag' : 'swipe', id, x0: e.clientX, y0: e.clientY, dx: 0, dy: 0, t0: Date.now(), kind: isCheck ? 'check' : isGrip ? 'grip' : 'body', from: idx, to: idx, slot: rect.height + 8, n: rows.length, moved: false } });
+  }
+  rowMove(e, id) {
+    const g = this.state.gesture; if (!g || g.id !== id) return;
+    const dx = e.clientX - g.x0, dy = e.clientY - g.y0;
+    if (g.type === 'drag') {
+      const to = Math.max(0, Math.min(g.n - 1, g.from + Math.round(dy / g.slot)));
+      this.setState({ gesture: { ...g, dy, to, moved: g.moved || Math.abs(dy) > 3 } });
+    } else {
+      if (!g.moved && Math.abs(dx) < 5) return;
+      const lim = 150, ad = Math.min(Math.abs(dx), lim + (Math.abs(dx) - lim) * 0.25);
+      this.setState({ gesture: { ...g, dx: Math.sign(dx) * ad, moved: true } });
+    }
+  }
+  rowUp(e, id) {
+    const g = this.state.gesture; if (!g || g.id !== id) return;
+    this.setState({ gesture: null });
+    if (g.type === 'drag') { if (g.to !== g.from && g.moved) this.reorder(g.from, g.to); return; }
+    if (!g.moved) { if (g.kind === 'check') this.complete(id); else if (g.kind === 'body') this.openDetail(id); return; }
+    if (g.dx > 80) this.complete(id); else if (g.dx < -80) this.snooze(id, 1, 'Moved to tomorrow');
+  }
+  rowCancel(e, id) { const g = this.state.gesture; if (g && g.id === id) this.setState({ gesture: null }); }
+  reorder(from, to) {
+    const ids = this.listRows().map(t => t.id);
+    const [m] = ids.splice(from, 1); ids.splice(to, 0, m);
+    const set = new Set(ids); let k = 0;
+    const byId = {}; this.state.tasks.forEach(t => { byId[t.id] = t; });
+    this.setState(s => ({ tasks: s.tasks.map(t => set.has(t.id) ? byId[ids[k++]] : t) }));
+  }
+
+  // ---- task actions
+  complete(id) {
+    const t = this.state.tasks.find(x => x.id === id); if (!t) return;
+    if (t.done) { this.updateTask(id, { done: false }); this.toast('Reopened'); return; }
+    clearTimeout(this.animTimer);
+    this.setState({ anim: { id, type: 'complete' } });
+    this.animTimer = setTimeout(() => {
+      this.lastAction = { type: 'complete', id };
+      this.setState(s => ({ tasks: s.tasks.map(x => x.id === id ? { ...x, done: true } : x), anim: null }), () => { this.toast('Done', true); this.checkAllDone(); });
+    }, 560);
+  }
+  snooze(id, to, label, immediate) {
+    const t = this.state.tasks.find(x => x.id === id); if (!t) return;
+    const patch = to === 'later' ? { due: 0, time: '17:30' } : { due: to };
+    const apply = () => {
+      this.lastAction = { type: 'snooze', id, prev: { due: t.due, time: t.time } };
+      this.setState(s => ({ tasks: s.tasks.map(x => x.id === id ? { ...x, ...patch } : x), anim: null }), () => this.toast(label || 'Moved', true));
+    };
+    if (immediate) { apply(); return; }
+    clearTimeout(this.animTimer);
+    this.setState({ anim: { id, type: 'snooze' } });
+    this.animTimer = setTimeout(apply, 300);
+  }
+  undo() {
+    const a = this.lastAction; if (!a) return; this.lastAction = null;
+    clearTimeout(this.doneTimer);
+    if (a.type === 'complete') this.updateTask(a.id, { done: false });
+    if (a.type === 'snooze') this.updateTask(a.id, a.prev);
+    if (a.type === 'add') this.setState(s => ({ tasks: s.tasks.filter(t => t.id !== a.id) }));
+    this.setState(s => ({ toast: null, screen: s.screen === 'done' ? 'today' : s.screen }));
+  }
+  checkAllDone() {
+    const s = this.state;
+    if (s.screen !== 'today' && s.screen !== 'focus') return;
+    const open = s.tasks.filter(t => this.isTodayTask(t) && !t.done);
+    if (open.length === 0) {
+      if (this.props.allDoneScreen ?? true) { clearTimeout(this.doneTimer); this.doneTimer = setTimeout(() => this.setState({ screen: 'done', toast: null }), 650); }
+      else this.toast('All done for today', true);
+      return;
+    }
+    if (s.filter !== 'all' && !open.some(t => t.owner === s.filter)) {
+      const p = this.person(s.filter);
+      this.toast(`${p.id === 'you' ? 'You’re' : p.name + ' is'} clear · ${open.length} left for the team`, true);
+    }
+  }
+
+  // ---- detail
+  openDetail(id) { this.setState({ detailId: id }); }
+  cycleIn(list, cur) { const i = list.indexOf(cur); return list[(i + 1) % list.length]; }
+  detailVals() {
+    const t = this.state.tasks.find(x => x.id === this.state.detailId);
+    if (!t) return {};
+    const proj = this.project(t.project), owner = this.person(t.owner);
+    const doneSubs = t.subtasks.filter(x => x.done).length;
+    return {
+      title: t.title, statusLabel: t.done ? 'Done' : 'Open',
+      projectName: proj ? proj.name : 'No project',
+      dotStyle: { width: 8, height: 8, borderRadius: '50%', flex: 'none', background: proj ? proj.color : 'var(--linen)' },
+      ownerName: owner.name, ownerInitial: owner.initial, ownerStyle: this.avatarStyle(owner, 24, 10),
+      dueLabel: this.dueLabel(t), notes: t.notes, hasNotes: !!t.notes, noNotes: !t.notes,
+      hasSubs: t.subtasks.length > 0, subLabel: `Subtasks · ${doneSubs}/${t.subtasks.length}`,
+      subtasks: t.subtasks.map((x, i) => ({ key: i, label: x.t, done: x.done, checkStyle: this.smallCheck(x.done), titleStyle: { fontSize: 15, color: x.done ? 'var(--ink-faint)' : 'var(--ink)', textDecoration: x.done ? 'line-through' : 'none' }, onToggle: () => this.updateTask(t.id, { subtasks: t.subtasks.map((y, j) => j === i ? { ...y, done: !y.done } : y) }) })),
+      primaryLabel: t.done ? 'Reopen' : 'Mark done',
+    };
+  }
+  detailPrimary() {
+    const id = this.state.detailId; const t = this.state.tasks.find(x => x.id === id); if (!t) return;
+    if (t.done) { this.updateTask(id, { done: false }); this.toast('Reopened'); return; }
+    this.lastAction = { type: 'complete', id };
+    this.setState(s => ({ tasks: s.tasks.map(x => x.id === id ? { ...x, done: true } : x), detailId: null }), () => { this.toast('Done', true); this.checkAllDone(); });
+  }
+
+  // ---- focus
+  focusQueue() { const s = this.state; return s.tasks.filter(t => !t.done && this.isTodayTask(t) && (s.filter === 'all' || t.owner === s.filter)); }
+  startFocus() {
+    if (!this.focusQueue().length) { this.toast('Nothing open today'); return; }
+    this.setState({ screen: 'focus', focusIdx: 0, focusOut: false, detailId: null, sheetOpen: false });
+  }
+  focusStep(fn) {
+    const q = this.focusQueue(); const t = q[Math.min(this.state.focusIdx, q.length - 1)]; if (!t) return;
+    clearTimeout(this.focusTimer);
+    this.setState({ focusOut: true });
+    this.focusTimer = setTimeout(() => fn(t), 240);
+  }
+  focusDone() {
+    this.focusStep(t => {
+      this.lastAction = { type: 'complete', id: t.id };
+      this.setState(s => ({ tasks: s.tasks.map(x => x.id === t.id ? { ...x, done: true } : x), focusOut: false }), () => {
+        const left = this.focusQueue();
+        if (!left.length) { if (this.props.allDoneScreen ?? true) this.setState({ screen: 'done' }); else { this.setState({ screen: 'today' }); this.toast('All done for today', true); } }
+        else this.setState(s => ({ focusIdx: Math.min(s.focusIdx, left.length - 1) }));
+      });
+    });
+  }
+  focusLater() {
+    this.focusStep(t => {
+      this.lastAction = { type: 'snooze', id: t.id, prev: { due: t.due, time: t.time } };
+      this.setState(s => ({ tasks: s.tasks.map(x => x.id === t.id ? { ...x, due: 1 } : x), focusOut: false }), () => {
+        const left = this.focusQueue();
+        if (!left.length) { this.setState({ screen: 'today' }); this.toast('Moved to tomorrow', true); }
+        else this.setState(s => ({ focusIdx: Math.min(s.focusIdx, left.length - 1) }));
+      });
+    });
+  }
+  focusSkip() {
+    const n = this.focusQueue().length; if (n < 2) return;
+    this.focusStep(() => this.setState(s => ({ focusIdx: (s.focusIdx + 1) % n, focusOut: false })));
+  }
+
+  // ---- quick add
+  defaultDue() { return this.state.screen === 'week' ? this.state.weekSel : 0; }
+  parseDraft(raw) {
+    let text = ' ' + raw + ' ';
+    const out = { due: undefined, time: null, owner: null, project: null };
+    const eat = (re, fn) => { const m = text.match(re); if (m) { fn(m); text = text.replace(m[0], ' '); } };
+    this.people.forEach(p => { if (p.id !== 'you') eat(new RegExp('\\s(?:@|for\\s)' + p.name + '\\b', 'i'), () => { out.owner = p.id; }); });
+    eat(/\s@me\b/i, () => { out.owner = 'you'; });
+    this.projects.forEach(p => eat(new RegExp('\\s' + p.tags[0] + '\\b', 'i'), () => { out.project = p.id; }));
+    if (!out.project) for (const p of this.projects) { if (p.tags.slice(1).some(k => new RegExp('\\b' + k + '\\b', 'i').test(text))) { out.project = p.id; break; } }
+    eat(/\s(?:at\s)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/i, m => { let h = (+m[1]) % 12; if (m[3].toLowerCase() === 'pm') h += 12; out.time = `${String(h).padStart(2, '0')}:${m[2] || '00'}`; });
+    if (!out.time) eat(/\s(?:at\s)?([01]?\d|2[0-3]):([0-5]\d)\b/, m => { out.time = `${String(+m[1]).padStart(2, '0')}:${m[2]}`; });
+    if (!out.time) eat(/\s(?:at\s)?noon\b/i, () => { out.time = '12:00'; });
+    if (!out.time) eat(/\s(?:this\s|in\sthe\s)?(morning|afternoon|evening|eod)\b/i, m => { out.time = { morning: '09:00', afternoon: '14:00', evening: '18:00', eod: '17:00' }[m[1].toLowerCase()]; });
+    eat(/\s(today|tonight)\b/i, m => { out.due = 0; if (m[1].toLowerCase() === 'tonight' && !out.time) out.time = '19:00'; });
+    eat(/\s(tomorrow|tmrw|tmr)\b/i, () => { out.due = 1; });
+    eat(/\snext\sweek\b/i, () => { out.due = 7; });
+    eat(/\sin\s(\d+)\sdays?\b/i, m => { out.due = +m[1]; });
+    eat(/\s(?:on\s|by\s)?(next\s)?(mon|tue|wed|thu|fri|sat|sun)(?:day|sday|nesday|rsday|urday)?\b/i, m => {
+      const idx = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'].indexOf(m[2].toLowerCase());
+      let diff = (idx - this.today.getDay() + 7) % 7; if (diff === 0) diff = 7; if (m[1]) diff += 7; out.due = diff;
+    });
+    eat(/\s(someday|later)\b/i, () => { out.due = null; });
+    let title = text.replace(/\s+/g, ' ').trim().replace(/[\s,]+(at|on|by|for)$/i, '').replace(/^(at|on|by|for)\s+/i, '');
+    if (title) title = title[0].toUpperCase() + title.slice(1);
+    return { ...out, title };
+  }
+  effectiveDraft() {
+    const s = this.state, p = this.parseDraft(s.draft);
+    const due = s.draftDue !== undefined ? s.draftDue : (p.due !== undefined ? p.due : this.defaultDue());
+    return { title: p.title, time: p.time, due, dueParsed: p.due !== undefined || s.draftDue !== undefined, owner: s.draftOwner || p.owner || 'you', ownerParsed: !!(s.draftOwner || p.owner), project: s.draftProject !== undefined ? s.draftProject : p.project };
+  }
+  chipStyle(active, pad) {
+    return { display: 'inline-flex', alignItems: 'center', gap: 6, padding: pad || '7px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 200ms', background: active ? 'var(--ink)' : 'var(--paper-soft)', color: active ? 'var(--paper)' : 'var(--ink-soft)' };
+  }
+  addTask() {
+    const d = this.effectiveDraft(); if (!d.title) return;
+    const id = Date.now();
+    const task = { id, title: d.title, project: d.project, owner: d.owner, due: d.due, time: d.time, done: false, notes: '', subtasks: [] };
+    this.lastAction = { type: 'add', id };
+    this.setState(s => ({ tasks: [...s.tasks, task], sheetOpen: false, draft: '' }), () => this.toast(`Added · ${this.dueLabel(task)}`, true));
+  }
+
+  // ---- render
+  renderVals() {
+    const s = this.state;
+    const density = this.props.density ?? 'comfortable';
+    const isList = s.screen === 'today' || s.screen === 'week' || s.screen === 'project';
+    const rowsRaw = this.listRows(), rows2Raw = this.listRows2();
+    const rows = rowsRaw.map((t, i) => this.decorate(t, i, true));
+    const rows2 = rows2Raw.map((t, i) => this.decorate(t, i, false));
+    const openToday = s.tasks.filter(t => this.isTodayTask(t) && !t.done);
+    const doneToday = s.tasks.filter(t => this.isTodayTask(t) && t.done);
+    const visOpen = openToday.filter(t => s.filter === 'all' || t.owner === s.filter).length;
+    const visDone = doneToday.filter(t => s.filter === 'all' || t.owner === s.filter).length;
+    const dateLine = `${this.dayNames[this.today.getDay()]}, ${this.today.getDate()} ${this.monthNames[this.today.getMonth()]}`;
+
+    const filterChips = [{ id: 'all', label: 'All', hasAvatar: false }, ...this.people.map(p => ({ id: p.id, label: String(openToday.filter(t => t.owner === p.id).length), hasAvatar: true, initial: p.initial, avatarStyle: this.avatarStyle(p, 18, 9) }))].map(c => {
+      const active = s.filter === c.id;
+      return { ...c, key: c.id, onSelect: () => this.setState({ filter: c.id }), style: { display: 'inline-flex', alignItems: 'center', gap: 6, padding: c.hasAvatar ? '4px 11px 4px 5px' : '7px 13px', borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 200ms', background: active ? 'var(--ink)' : '#fff', color: active ? 'var(--paper)' : 'var(--ink-soft)', border: active ? '1px solid var(--ink)' : '1px solid rgba(27,24,21,0.08)', boxShadow: active ? '0 4px 12px rgba(27,24,21,0.16)' : 'var(--shadow-xs)' } };
+    });
+
+    const off = (this.today.getDay() + 6) % 7;
+    const mon = this.addDays(-off), sun = this.addDays(6 - off);
+    const weekRange = mon.getMonth() === sun.getMonth() ? `${mon.getDate()}–${sun.getDate()} ${this.monthNames[mon.getMonth()]}` : `${mon.getDate()} ${this.monthNames[mon.getMonth()]} – ${sun.getDate()} ${this.monthNames[sun.getMonth()]}`;
+    const weekDays = [0, 1, 2, 3, 4, 5, 6].map(i => {
+      const o = i - off, d = this.addDays(o), count = s.tasks.filter(t => !t.done && t.due === o).length, sel = o === s.weekSel, isT = o === 0;
+      return { key: i, label: 'MTWTFSS'[i], num: d.getDate(), dots: Array.from({ length: Math.min(count, 3) }, (_, k) => ({ key: k })), onSelect: () => this.setState({ weekSel: o }), style: { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '10px 0 8px', borderRadius: 16, cursor: 'pointer', transition: 'all 200ms', boxSizing: 'border-box', background: sel ? 'var(--ink)' : (isT ? '#fff' : 'transparent'), color: sel ? 'var(--paper)' : (o < 0 ? 'var(--ink-faint)' : 'var(--ink)'), boxShadow: sel ? '0 6px 16px rgba(27,24,21,0.16)' : (isT ? 'var(--shadow-xs)' : 'none'), border: isT && !sel ? '1px solid rgba(27,24,21,0.08)' : '1px solid transparent' } };
+    });
+    const selDate = this.addDays(s.weekSel);
+    const weekSelLabel = `${this.dayNames[selDate.getDay()]}${s.weekSel === 0 ? ' · today' : s.weekSel === 1 ? ' · tomorrow' : ''}`;
+
+    const projectCards = this.projects.map(p => {
+      const all = s.tasks.filter(t => t.project === p.id), done = all.filter(t => t.done).length, open = all.length - done;
+      const ownerIds = [...new Set(all.map(t => t.owner))];
+      const pct = all.length ? Math.round(done / all.length * 100) : 0;
+      return { ...p, key: p.id, openLabel: open === 1 ? '1 open' : `${open} open`, doneCount: done, total: all.length, ownerNames: ownerIds.map(id => this.person(id).name), pct,
+        dotStyle: { width: 10, height: 10, borderRadius: '50%', background: p.color, display: 'block' },
+        fillStyle: { height: '100%', width: `${pct}%`, borderRadius: 999, background: p.color, transition: 'width 400ms' },
+        owners: ownerIds.map(id => { const o = this.person(id); return { key: id, initial: o.initial, style: this.avatarStyle(o, 24, 9, { border: '2px solid #fff', marginLeft: -6 }) }; }),
+        onOpen: () => this.setState({ screen: 'project', projectId: p.id, detailId: null }) };
+    });
+    const openAll = s.tasks.filter(t => !t.done).length;
+    const pc = projectCards.find(p => p.id === s.projectId) || projectCards[0];
+    const proj = { name: pc.name, meta: `${pc.doneCount} of ${pc.total} done · ${pc.ownerNames.join(', ')}`, fillStyle: pc.fillStyle };
+
+    const tab = active => ({ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 13px', borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 200ms', background: active ? 'var(--ink)' : 'transparent', color: active ? 'var(--paper)' : 'var(--ink-mute)', boxShadow: active ? '0 4px 12px rgba(27,24,21,0.18)' : 'none' });
+
+    let emptyTitle = 'Nothing scheduled.';
+    if (s.screen === 'today') { if (s.filter === 'all') emptyTitle = 'All clear for today.'; else { const p = this.person(s.filter); emptyTitle = `${p.id === 'you' ? 'You’re' : p.name + ' is'} clear for today.`; } }
+    if (s.screen === 'project') emptyTitle = 'No open tasks.';
+    const rows2Label = s.screen === 'week' ? `Unscheduled · ${rows2.length}` : `Done · ${rows2.length}`;
+
+    const q = this.focusQueue(); const fi = Math.min(s.focusIdx, Math.max(0, q.length - 1)); const ft = q[fi];
+    const focus = ft ? (() => { const fp = this.project(ft.project), fo = this.person(ft.owner); return { title: ft.title, projectName: fp ? fp.name : 'No project', counter: `${fi + 1} of ${q.length}`, meta: `${ft.time ? ft.time + ' · ' : ''}${fo.name}`, ownerInitial: fo.initial, ownerStyle: this.avatarStyle(fo, 24, 10), fadeStyle: { display: 'flex', flexDirection: 'column', gap: 16, opacity: s.focusOut ? 0 : 1, transform: s.focusOut ? 'translateY(-10px)' : 'none', transition: 'opacity 220ms, transform 220ms' } }; })() : {};
+
+    const todayAll = s.tasks.filter(t => this.isTodayTask(t));
+    const peopleCount = new Set(todayAll.map(t => t.owner)).size;
+    const doneSummary = `${todayAll.length} tasks closed · ${peopleCount} people.`;
+    const teamAvatars = this.people.map(p => ({ key: p.id, initial: p.initial, style: this.avatarStyle(p, 34, 12, { border: '2px solid #fff', marginLeft: -8 }) }));
+
+    const d = this.effectiveDraft();
+    const dueChip = { label: this.dueLabel({ due: d.due, time: d.time }), style: this.chipStyle(d.dueParsed) };
+    const op = this.person(d.owner);
+    const ownerChip = { label: op.name, initial: op.initial, avatarStyle: this.avatarStyle(op, 18, 9), style: this.chipStyle(d.ownerParsed, '4px 12px 4px 4px') };
+    const pp = this.project(d.project);
+    const projectChip = { label: pp ? pp.name : 'No project', dotStyle: { width: 8, height: 8, borderRadius: '50%', flex: 'none', background: pp ? pp.color : 'transparent', border: pp ? 'none' : '1.5px solid rgba(27,24,21,0.28)', boxSizing: 'border-box' }, style: this.chipStyle(!!pp) };
+    const can = !!d.title;
+    const addBtnStyle = { padding: '12px 22px', borderRadius: 999, fontSize: 14, fontWeight: 600, cursor: can ? 'pointer' : 'default', transition: 'all 200ms', flex: 'none', background: can ? 'var(--accent)' : 'var(--linen)', color: can ? '#fff' : 'var(--ink-faint)', boxShadow: can ? '0 8px 20px rgba(242,107,58,0.3)' : 'none' };
+    const dueOpts = [0, 1, 2, 7, null];
+
+    return {
+      sheetOpen: s.sheetOpen, isList, isToday: s.screen === 'today', isWeek: s.screen === 'week', isProject: s.screen === 'project', isProjects: s.screen === 'projects',
+      isDetail: !!s.detailId, isFocus: s.screen === 'focus', isDone: s.screen === 'done',
+      showTabs: (isList || s.screen === 'projects') && !s.detailId,
+      showAura: (this.props.headerAura ?? true) && s.screen === 'today',
+      showMeta: density !== 'compact',
+      dateLine, openLine: `${visOpen} to do, ${visDone} done`,
+      filterChips, rows, rows2, hasRows: rows.length > 0, rowsEmpty: rows.length === 0, emptyTitle, hasRows2: rows2.length > 0, rows2Label,
+      weekRange, weekDays, weekSelLabel, proj, projectsLine: `${this.projects.length} projects · ${openAll} open`, projectCards,
+      tabToday: tab(s.screen === 'today'), tabWeek: tab(s.screen === 'week'), tabProjects: tab(s.screen === 'projects' || s.screen === 'project'),
+      goToday: () => this.setState({ screen: 'today', detailId: null }), goWeek: () => this.setState({ screen: 'week', detailId: null }), goProjects: () => this.setState({ screen: 'projects', detailId: null }),
+      openSheet: () => this.setState({ sheetOpen: true, draft: '', draftDue: undefined, draftOwner: null, draftProject: undefined }), closeSheet: () => this.setState({ sheetOpen: false }),
+      startFocus: () => this.startFocus(),
+      detail: this.detailVals(), closeDetail: () => this.setState({ detailId: null }),
+      cycleProject: () => { const t = s.tasks.find(x => x.id === s.detailId); if (t) this.updateTask(t.id, { project: this.cycleIn([null, ...this.projects.map(p => p.id)], t.project) }); },
+      cycleOwner: () => { const t = s.tasks.find(x => x.id === s.detailId); if (t) this.updateTask(t.id, { owner: this.cycleIn(this.people.map(p => p.id), t.owner) }); },
+      cycleDue: () => { const t = s.tasks.find(x => x.id === s.detailId); if (t) this.updateTask(t.id, { due: this.cycleIn(dueOpts, dueOpts.includes(t.due) ? t.due : 7) }); },
+      snoozeLater: () => this.snooze(s.detailId, 'later', 'Moved to later today', true),
+      snoozeTomorrow: () => this.snooze(s.detailId, 1, 'Moved to tomorrow', true),
+      snoozeNextWeek: () => this.snooze(s.detailId, 7, 'Moved to next week', true),
+      detailPrimary: () => this.detailPrimary(),
+      focus, exitFocus: () => this.setState({ screen: 'today' }), focusDone: () => this.focusDone(), focusLater: () => this.focusLater(), focusSkip: () => this.focusSkip(),
+      doneSummary, teamAvatars, planTomorrow: () => this.setState({ screen: 'week', weekSel: 1 }),
+      inputRef: this.inputRef, draft: s.draft,
+      onDraft: e => this.setState({ draft: e.target.value }),
+      onDraftKey: e => { if (e.key === 'Enter') this.addTask(); if (e.key === 'Escape') this.setState({ sheetOpen: false }); },
+      dueChip, ownerChip, projectChip,
+      cycleDraftDue: () => this.setState({ draftDue: this.cycleIn(dueOpts, dueOpts.includes(d.due) ? d.due : 7) }),
+      cycleDraftOwner: () => this.setState({ draftOwner: this.cycleIn(this.people.map(p => p.id), d.owner) }),
+      cycleDraftProject: () => this.setState({ draftProject: this.cycleIn([null, ...this.projects.map(p => p.id)], d.project) }),
+      addTask: () => this.addTask(), addBtnStyle,
+      toast: s.toast, undo: () => this.undo(),
+    };
+  }
+}
+</script>
+</body>
+</html>

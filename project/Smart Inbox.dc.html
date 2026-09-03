@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="./aura/colors_and_type.css">
+<style>
+body{margin:0;background:#F6F4EF}
+a{color:#1B1815;text-decoration:none}
+a:hover{color:#F26B3A;text-decoration:underline;text-underline-offset:3px}
+input::placeholder,textarea::placeholder{color:#9A958C}
+[data-scroll]::-webkit-scrollbar{display:none}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes fadeUp{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+@keyframes slideIn{from{opacity:0;transform:translateX(48px)}to{opacity:1;transform:none}}
+@keyframes sheetUp{from{opacity:0;transform:translateY(48px)}to{opacity:1;transform:none}}
+@keyframes riseIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes auraDrift{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(3%,4%) scale(1.06)}}
+@keyframes auraBreathe{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;gap:56px;padding:40px 32px;box-sizing:border-box;flex-wrap:wrap;background:var(--paper);font-family:var(--font-sans);color:var(--ink)">
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" keyboard="{{ sheetOpen }}" hint-size="402px,874px">
+<div data-screen-label="tend · Smart Inbox" style="position:relative;height:100%;overflow:hidden;background:var(--paper);color:var(--ink);font-family:var(--font-sans);z-index:1;-webkit-font-smoothing:antialiased">
+
+<sc-if value="{{ isList }}" hint-placeholder-val="{{ true }}">
+<div data-scroll="1" style="position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding:0 20px 150px;box-sizing:border-box;scrollbar-width:none">
+<sc-if value="{{ showAura }}" hint-placeholder-val="{{ true }}">
+<div style="position:absolute;top:-150px;left:-90px;width:420px;height:380px;border-radius:50%;background:radial-gradient(ellipse at 45% 45%, #FFB59A 0%, #F7C8D6 42%, rgba(247,200,214,0) 74%);filter:blur(44px);opacity:0.6;pointer-events:none;animation:auraBreathe 9s ease-in-out infinite"></div>
+</sc-if>
+<div style="position:relative;padding-top:66px">
+
+<sc-if value="{{ isToday }}" hint-placeholder-val="{{ true }}">
+<div data-screen-label="Today" style="display:flex;flex-direction:column">
+<div style="display:flex;align-items:center;justify-content:space-between">
+<div style="display:flex;align-items:center;gap:8px"><span style="width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 35%, #fff 0%, #F7C8D6 35%, #C9B8E8 70%, #A8C5F0 100%)"></span><span style="font-family:var(--font-serif);font-style:italic;font-size:19px;color:var(--ink);letter-spacing:-0.01em">tend</span></div>
+<div style="display:flex;align-items:center;gap:8px">
+<div style="display:flex;gap:2px;padding:3px;border-radius:999px;background:#fff;border:1px solid rgba(27,24,21,0.08);box-shadow:var(--shadow-xs)">
+<div onClick="{{ setCarla }}" style="{{ modeCarlaStyle }}">Carla</div>
+<div onClick="{{ setBarbara }}" style="{{ modeBarbaraStyle }}">Barbara</div>
+</div>
+<div onClick="{{ startFocus }}" style-active="transform:scale(0.95)" style="width:36px;height:36px;border-radius:999px;background:#fff;border:1px solid rgba(27,24,21,0.08);box-shadow:var(--shadow-xs);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink);transition:transform 120ms">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
+</div>
+</div>
+</div>
+<h1 style="font-family:var(--font-serif);font-weight:400;font-size:42px;line-height:1;letter-spacing:-0.02em;color:var(--ink);margin:30px 0 0">{{ todayTitle }}</h1>
+<div style="margin-top:10px;font-size:14px;color:var(--ink-mute);display:flex;gap:6px;flex-wrap:wrap;align-items:center"><span>{{ dateLine }}</span><span>·</span><span>{{ openLine }}</span>
+<sc-if value="{{ hasPending }}" hint-placeholder-val="{{ false }}"><span onClick="{{ pendingInfo }}" style="margin-left:4px;padding:3px 9px;border-radius:999px;background:var(--warning-soft);color:var(--warning);font-size:11px;font-weight:600;cursor:pointer">{{ pendingLabel }}</span></sc-if>
+</div>
+<div style="display:flex;gap:6px;margin-top:18px;flex-wrap:wrap">
+<sc-for list="{{ filterChips }}" as="c" hint-placeholder-count="0">
+<div onClick="{{ c.onSelect }}" style="{{ c.style }}"><sc-if value="{{ c.hasAvatar }}" hint-placeholder-val="{{ false }}"><span style="{{ c.avatarStyle }}">{{ c.initial }}</span></sc-if><span>{{ c.label }}</span></div>
+</sc-for>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isWeek }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Week" style="display:flex;flex-direction:column">
+<div style="display:flex;align-items:center;gap:8px"><span style="width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 35%, #fff 0%, #F7C8D6 35%, #C9B8E8 70%, #A8C5F0 100%)"></span><span style="font-family:var(--font-serif);font-style:italic;font-size:19px;color:var(--ink);letter-spacing:-0.01em">tend</span></div>
+<h1 style="font-family:var(--font-serif);font-weight:400;font-size:42px;line-height:1;letter-spacing:-0.02em;color:var(--ink);margin:30px 0 0">Week.</h1>
+<div style="margin-top:10px;font-size:14px;color:var(--ink-mute)">{{ weekRange }}</div>
+<div style="display:flex;gap:4px;margin-top:20px">
+<sc-for list="{{ weekDays }}" as="d" hint-placeholder-count="7">
+<div onClick="{{ d.onSelect }}" style="{{ d.style }}">
+<span style="font-size:11px;font-weight:600;opacity:0.6">{{ d.label }}</span>
+<span style="font-size:16px;font-weight:600">{{ d.num }}</span>
+<div style="display:flex;gap:3px;height:4px"><sc-for list="{{ d.dots }}" as="x" hint-placeholder-count="0"><span style="width:4px;height:4px;border-radius:50%;background:currentColor;opacity:0.7"></span></sc-for></div>
+</div>
+</sc-for>
+</div>
+<div style="margin-top:26px;margin-bottom:-8px;font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-mute)">{{ weekSelLabel }}</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isOwner }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Owner" style="display:flex;flex-direction:column">
+<div style="display:flex;align-items:center;justify-content:space-between">
+<div onClick="{{ goPeople }}" style-active="transform:scale(0.95)" style="width:40px;height:40px;border-radius:999px;background:#fff;border:1px solid rgba(27,24,21,0.08);box-shadow:var(--shadow-xs);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink);transition:transform 120ms">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><path d="m15 18-6-6 6-6"></path></svg>
+</div>
+<span style="font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-mute)">Owner</span>
+<div style="width:40px"></div>
+</div>
+<div style="display:flex;align-items:center;gap:14px;margin-top:28px"><span style="{{ ownerHead.avatarStyle }}">{{ ownerHead.initial }}</span><h1 style="font-family:var(--font-serif);font-weight:400;font-size:34px;line-height:1.05;letter-spacing:-0.02em;color:var(--ink);margin:0">{{ ownerHead.name }}</h1></div>
+<div style="margin-top:10px;font-size:14px;color:var(--ink-mute)">{{ ownerHead.meta }}</div>
+</div>
+</sc-if>
+
+</div>
+
+<sc-if value="{{ loading }}" hint-placeholder-val="{{ false }}">
+<div style="margin-top:36px;padding:30px 20px;border-radius:24px;background:#fff;box-shadow:var(--shadow-xs);text-align:center;font-family:var(--font-serif);font-style:italic;font-size:20px;color:var(--ink-mute)">Loading your Smart Inbox…</div>
+</sc-if>
+
+<sc-if value="{{ hasGroups }}" hint-placeholder-val="{{ true }}">
+<sc-for list="{{ groups }}" as="g" hint-placeholder-count="2">
+<div style="display:flex;flex-direction:column">
+<sc-if value="{{ g.showLabel }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;align-items:center;gap:8px;margin-top:26px;font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-mute)"><span style="{{ g.avatarStyle }}">{{ g.initial }}</span><span>{{ g.label }}</span></div>
+</sc-if>
+<div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
+<sc-for list="{{ g.rows }}" as="t" hint-placeholder-count="3">
+<div style="position:relative;border-radius:18px">
+<div style="{{ t.dragStyle }}">
+<div style="position:absolute;inset:0;border-radius:18px;overflow:hidden;display:flex">
+<div style="flex:1;background:#B8E0CA;display:flex;align-items:center;gap:8px;padding-left:22px;font-size:13px;font-weight:600;color:var(--ink)">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round"><path d="M20 6 9 17l-5-5"></path></svg>
+<span>Done</span>
+</div>
+<div style="flex:1;background:#C9B8E8;display:flex;align-items:center;justify-content:flex-end;gap:8px;padding-right:22px;font-size:13px;font-weight:600;color:var(--ink)">
+<span>Tomorrow</span>
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>
+</div>
+</div>
+<div style="{{ t.swipeStyle }}">
+<div onPointerDown="{{ t.onDown }}" onPointerMove="{{ t.onMove }}" onPointerUp="{{ t.onUp }}" onPointerCancel="{{ t.onCancel }}" style="position:relative;background:#fff;border-radius:18px;box-shadow:var(--shadow-xs);display:flex;align-items:center;gap:12px;padding:12px 6px 12px 14px;touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:pointer">
+<div data-check="1" style="{{ t.checkStyle }}"><sc-if value="{{ t.checked }}" hint-placeholder-val="{{ false }}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round"><path d="M20 6 9 17l-5-5"></path></svg></sc-if></div>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+<div style="font-size:15px;font-weight:500;color:var(--ink);line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">{{ t.title }}</div>
+<div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-mute);line-height:1.2;min-width:0"><span style="{{ t.dotStyle }}"></span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">{{ t.metaText }}</span>
+<sc-if value="{{ t.isHigh }}" hint-placeholder-val="{{ false }}"><span style="flex:none;padding:2px 7px;border-radius:999px;background:var(--danger-soft);color:var(--danger);font-size:10px;font-weight:700">High</span></sc-if>
+<sc-if value="{{ t.hasReview }}" hint-placeholder-val="{{ false }}"><span style="{{ t.reviewStyle }}">{{ t.reviewLabel }}</span></sc-if>
+</div>
+</div>
+<div data-grip="1" style="width:30px;height:38px;display:flex;align-items:center;justify-content:center;color:var(--linen);cursor:grab;touch-action:none;flex:none">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="9" cy="6" r="1.6"></circle><circle cx="9" cy="12" r="1.6"></circle><circle cx="9" cy="18" r="1.6"></circle><circle cx="15" cy="6" r="1.6"></circle><circle cx="15" cy="12" r="1.6"></circle><circle cx="15" cy="18" r="1.6"></circle></svg>
+</div>
+</div>
+</div>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-for>
+</sc-if>
+
+<sc-if value="{{ rowsEmpty }}" hint-placeholder-val="{{ false }}">
+<div style="margin-top:36px;padding:30px 20px;border-radius:24px;background:#fff;box-shadow:var(--shadow-xs);text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center">
+<span style="font-family:var(--font-serif);font-style:italic;font-size:22px;color:var(--ink);line-height:1.2">{{ emptyTitle }}</span>
+<span onClick="{{ openSheet }}" style="font-size:13px;font-weight:600;color:var(--ink-mute);cursor:pointer;text-decoration:underline;text-underline-offset:3px">Add a task</span>
+</div>
+</sc-if>
+
+<sc-if value="{{ hasRows2 }}" hint-placeholder-val="{{ false }}">
+<div style="margin-top:28px;font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-mute)">{{ rows2Label }}</div>
+<div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
+<sc-for list="{{ rows2 }}" as="t" hint-placeholder-count="2">
+<div onClick="{{ t.onOpen }}" style="background:#fff;border-radius:18px;box-shadow:var(--shadow-xs);display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer">
+<div onClick="{{ t.onToggle }}" style="{{ t.checkStyle }}"><sc-if value="{{ t.checked }}" hint-placeholder-val="{{ false }}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round"><path d="M20 6 9 17l-5-5"></path></svg></sc-if></div>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+<div style="{{ t.titleStyle }}">{{ t.title }}</div>
+<div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-faint);line-height:1.2"><span style="{{ t.dotStyle }}"></span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.metaText }}</span></div>
+</div>
+<div style="{{ t.ownerStyle }}">{{ t.ownerInitial }}</div>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ isReview }}" hint-placeholder-val="{{ false }}">
+<div data-scroll="1" data-screen-label="Review" style="position:absolute;inset:0;overflow-y:auto;padding:66px 20px 150px;box-sizing:border-box;scrollbar-width:none;animation:fadeIn 240ms">
+<div style="display:flex;align-items:center;gap:8px"><span style="width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 35%, #fff 0%, #F7C8D6 35%, #C9B8E8 70%, #A8C5F0 100%)"></span><span style="font-family:var(--font-serif);font-style:italic;font-size:19px;color:var(--ink);letter-spacing:-0.01em">tend</span></div>
+<h1 style="font-family:var(--font-serif);font-weight:400;font-size:42px;line-height:1;letter-spacing:-0.02em;color:var(--ink);margin:30px 0 0">{{ reviewTitle }}</h1>
+<div style="margin-top:10px;font-size:14px;color:var(--ink-mute)">{{ reviewLine }}</div>
+<sc-if value="{{ reviewEmpty }}" hint-placeholder-val="{{ false }}">
+<div style="margin-top:32px;padding:30px 20px;border-radius:24px;background:#fff;box-shadow:var(--shadow-xs);text-align:center;font-family:var(--font-serif);font-style:italic;font-size:22px;color:var(--ink)">{{ reviewEmptyTitle }}</div>
+</sc-if>
+<div style="display:flex;flex-direction:column;gap:14px;margin-top:22px">
+<sc-for list="{{ reviewCards }}" as="r" hint-placeholder-count="1">
+<div style="background:#fff;border-radius:24px;padding:20px;box-shadow:var(--shadow-md);display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+<span style="{{ r.statusStyle }}">{{ r.statusLabel }}</span>
+<span style="font-size:12px;color:var(--ink-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.from }}</span>
+</div>
+<div style="font-family:var(--font-serif);font-size:21px;line-height:1.2;letter-spacing:-0.01em;color:var(--ink);text-wrap:pretty">{{ r.subject }}</div>
+<div style="font-size:14px;line-height:1.5;color:var(--ink-soft)">{{ r.action }}</div>
+<sc-if value="{{ r.showSummary }}" hint-placeholder-val="{{ false }}">
+<div style="padding:12px 14px;border-radius:14px;background:var(--paper-soft);font-size:13px;line-height:1.55;color:var(--ink-soft)">{{ r.summary }}</div>
+</sc-if>
+<sc-if value="{{ r.hasFeedback }}" hint-placeholder-val="{{ false }}">
+<div style="padding:12px 14px;border-radius:14px;background:var(--accent-soft);font-size:13px;line-height:1.55;color:var(--ink-soft)"><span style="font-weight:700;color:var(--accent-press)">Carla: </span>{{ r.feedback }}</div>
+</sc-if>
+<div style="font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-mute);margin-top:4px">Draft by LOLI</div>
+<sc-if value="{{ r.editing }}" hint-placeholder-val="{{ false }}">
+<textarea value="{{ r.draftEdit }}" onChange="{{ r.onDraftEdit }}" style="width:100%;box-sizing:border-box;min-height:220px;resize:vertical;border:1px solid var(--ink);border-radius:16px;padding:12px 14px;font-family:var(--font-sans);font-size:13px;line-height:1.55;color:var(--ink);background:#fff;outline:none;box-shadow:0 0 0 4px rgba(27,24,21,0.06)"></textarea>
+<div style="display:flex;gap:8px">
+<div onClick="{{ r.saveDraft }}" style-active="transform:scale(0.97)" style="flex:1;padding:11px 0;border-radius:999px;background:var(--ink);color:var(--paper);font-size:13px;font-weight:600;text-align:center;cursor:pointer;transition:transform 120ms">Save draft</div>
+<div onClick="{{ r.cancelEdit }}" style-active="transform:scale(0.97)" style="flex:1;padding:11px 0;border-radius:999px;background:#fff;border:1px solid rgba(27,24,21,0.1);font-size:13px;font-weight:600;color:var(--ink);text-align:center;cursor:pointer;transition:transform 120ms">Cancel</div>
+</div>
+</sc-if>
+<sc-if value="{{ r.notEditing }}" hint-placeholder-val="{{ true }}">
+<div style="{{ r.draftStyle }}">{{ r.draft }}</div>
+<sc-if value="{{ r.canExpand }}" hint-placeholder-val="{{ false }}"><span onClick="{{ r.toggleExpand }}" style="font-size:13px;font-weight:600;color:var(--ink-mute);cursor:pointer;text-decoration:underline;text-underline-offset:3px;align-self:flex-start">{{ r.expandLabel }}</span></sc-if>
+<sc-if value="{{ r.hasLimitation }}" hint-placeholder-val="{{ false }}"><div style="font-family:var(--font-serif);font-style:italic;font-size:14px;line-height:1.5;color:var(--ink-mute)">{{ r.limitation }}</div></sc-if>
+</sc-if>
+<sc-if value="{{ r.asking }}" hint-placeholder-val="{{ false }}">
+<textarea value="{{ r.feedbackEdit }}" onChange="{{ r.onFeedbackEdit }}" placeholder="What should change?" style="width:100%;box-sizing:border-box;min-height:88px;resize:vertical;border:1px solid var(--ink);border-radius:16px;padding:12px 14px;font-family:var(--font-sans);font-size:14px;line-height:1.5;color:var(--ink);background:#fff;outline:none;box-shadow:0 0 0 4px rgba(27,24,21,0.06)"></textarea>
+<div style="display:flex;gap:8px">
+<div onClick="{{ r.sendChanges }}" style-active="transform:scale(0.97)" style="flex:1;padding:11px 0;border-radius:999px;background:var(--ink);color:var(--paper);font-size:13px;font-weight:600;text-align:center;cursor:pointer;transition:transform 120ms">{{ r.askLabel }}</div>
+<div onClick="{{ r.cancelAsk }}" style-active="transform:scale(0.97)" style="flex:1;padding:11px 0;border-radius:999px;background:#fff;border:1px solid rgba(27,24,21,0.1);font-size:13px;font-weight:600;color:var(--ink);text-align:center;cursor:pointer;transition:transform 120ms">Cancel</div>
+</div>
+</sc-if>
+<sc-if value="{{ r.showActions }}" hint-placeholder-val="{{ true }}">
+<sc-if value="{{ r.carlaActions }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;gap:8px;margin-top:4px">
+<div onClick="{{ r.approve }}" style-active="transform:scale(0.97)" style="flex:1.2;padding:12px 0;border-radius:999px;background:var(--ink);color:var(--paper);font-size:13px;font-weight:600;text-align:center;cursor:pointer;box-shadow:0 8px 20px rgba(27,24,21,0.16);transition:transform 120ms">Approve</div>
+<div onClick="{{ r.askChanges }}" style-active="transform:scale(0.97)" style="flex:1;padding:12px 0;border-radius:999px;background:#fff;border:1px solid rgba(27,24,21,0.1);font-size:13px;font-weight:600;color:var(--ink);text-align:center;cursor:pointer;transition:transform 120ms">Changes</div>
+<div onClick="{{ r.askBarbara }}" style-active="transform:scale(0.97)" style="flex:1;padding:12px 0;border-radius:999px;background:#fff;border:1px solid rgba(27,24,21,0.1);font-size:13px;font-weight:600;color:var(--ink);text-align:center;cursor:pointer;transition:transform 120ms">To Barbara</div>
+</div>
+</sc-if>
+<sc-if value="{{ r.barbaraActions }}" hint-placeholder-val="{{ false }}">
+<div onClick="{{ r.complete }}" style-active="transform:scale(0.97)" style="margin-top:4px;padding:13px 0;border-radius:999px;background:var(--ink);color:var(--paper);font-size:14px;font-weight:600;text-align:center;cursor:pointer;box-shadow:0 8px 20px rgba(27,24,21,0.16);transition:transform 120ms">Mark completed</div>
+</sc-if>
+<div style="display:flex;gap:16px;justify-content:center;font-size:12px;font-weight:600;color:var(--ink-mute);margin-top:2px">
+<sc-if value="{{ r.carlaActions }}" hint-placeholder-val="{{ true }}"><span onClick="{{ r.startEdit }}" style="cursor:pointer;text-decoration:underline;text-underline-offset:3px">Edit draft</span></sc-if>
+<span onClick="{{ r.toggleSummary }}" style="cursor:pointer;text-decoration:underline;text-underline-offset:3px">{{ r.summaryLabel }}</span>
+<span onClick="{{ r.openGmail }}" style="cursor:pointer;text-decoration:underline;text-underline-offset:3px">Open in Gmail</span>
+</div>
+</sc-if>
+</div>
+</sc-for>
+</div>
+<sc-if value="{{ hasReviewDone }}" hint-placeholder-val="{{ false }}">
+<div style="margin-top:28px;font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-mute)">{{ reviewDoneLabel }}</div>
+<div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
+<sc-for list="{{ reviewDone }}" as="t" hint-placeholder-count="0">
+<div onClick="{{ t.onOpen }}" style="background:#fff;border-radius:18px;box-shadow:var(--shadow-xs);display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer">
+<span style="{{ t.reviewStyle }}">{{ t.reviewLabel }}</span>
+<div style="flex:1;min-width:0;font-size:14px;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.subject }}</div>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ isPeople }}" hint-placeholder-val="{{ false }}">
+<div data-scroll="1" data-screen-label="People" style="position:absolute;inset:0;overflow-y:auto;padding:66px 20px 150px;box-sizing:border-box;scrollbar-width:none;animation:fadeIn 240ms">
+<div style="display:flex;align-items:center;gap:8px"><span style="width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 35%, #fff 0%, #F7C8D6 35%, #C9B8E8 70%, #A8C5F0 100%)"></span><span style="font-family:var(--font-serif);font-style:italic;font-size:19px;color:var(--ink);letter-spacing:-0.01em">tend</span></div>
+<h1 style="font-family:var(--font-serif);font-weight:400;font-size:42px;line-height:1;letter-spacing:-0.02em;color:var(--ink);margin:30px 0 0">People.</h1>
+<div style="margin-top:10px;font-size:14px;color:var(--ink-mute)">{{ peopleLine }}</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:22px">
+<sc-for list="{{ peopleCards }}" as="p" hint-placeholder-count="6">
+<div onClick="{{ p.onOpen }}" style-active="transform:scale(0.98)" style="background:#fff;border-radius:24px;padding:18px;box-shadow:var(--shadow-md);display:flex;flex-direction:column;gap:12px;min-height:150px;cursor:pointer;box-sizing:border-box;transition:transform 120ms">
+<span style="{{ p.avatarStyle }}">{{ p.initial }}</span>
+<div style="display:flex;flex-direction:column;gap:4px;flex:1">
+<span style="font-family:var(--font-serif);font-size:20px;line-height:1.15;letter-spacing:-0.01em;color:var(--ink)">{{ p.name }}</span>
+<span style="font-size:12px;color:var(--ink-mute)">{{ p.openLabel }}</span>
+</div>
+<div style="height:4px;border-radius:999px;background:var(--bone);overflow:hidden"><div style="{{ p.fillStyle }}"></div></div>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ showTabs }}" hint-placeholder-val="{{ true }}">
+<div style="position:absolute;left:0;right:0;bottom:36px;display:flex;justify-content:center;align-items:center;gap:10px;z-index:20;pointer-events:none">
+<div style="pointer-events:auto;display:flex;gap:2px;padding:5px;border-radius:999px;background:rgba(255,255,255,0.62);backdrop-filter:blur(24px) saturate(150%);-webkit-backdrop-filter:blur(24px) saturate(150%);border:1px solid rgba(255,255,255,0.75);box-shadow:0 1px 0 rgba(255,255,255,0.5) inset, 0 12px 32px rgba(27,24,21,0.12)">
+<div onClick="{{ goToday }}" style="{{ tabToday }}">
+<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>
+<sc-if value="{{ isTodayTab }}" hint-placeholder-val="{{ true }}"><span>Today</span></sc-if>
+</div>
+<div onClick="{{ goReview }}" style="{{ tabReview }}">
+<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+<sc-if value="{{ isReview }}" hint-placeholder-val="{{ false }}"><span>{{ reviewTab }}</span></sc-if>
+<sc-if value="{{ hasReviewBadge }}" hint-placeholder-val="{{ false }}"><span style="{{ reviewBadgeStyle }}">{{ reviewCount }}</span></sc-if>
+</div>
+<div onClick="{{ goPeople }}" style="{{ tabPeople }}">
+<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+<sc-if value="{{ isPeopleTab }}" hint-placeholder-val="{{ false }}"><span>People</span></sc-if>
+</div>
+<div onClick="{{ goWeek }}" style="{{ tabWeek }}">
+<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="3"></rect><path d="M3 10h18"></path></svg>
+<sc-if value="{{ isWeek }}" hint-placeholder-val="{{ false }}"><span>Week</span></sc-if>
+</div>
+</div>
+<div onClick="{{ openSheet }}" style-active="transform:scale(0.94)" style="pointer-events:auto;width:52px;height:52px;border-radius:999px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 28px rgba(242,107,58,0.35);cursor:pointer;transition:transform 120ms">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Task detail" style="position:absolute;inset:0;background:var(--paper);z-index:25;display:flex;flex-direction:column;animation:slideIn 300ms cubic-bezier(0.2,0.8,0.3,1)">
+<div style="padding:66px 20px 0;display:flex;align-items:center;justify-content:space-between">
+<div onClick="{{ closeDetail }}" style-active="transform:scale(0.95)" style="width:40px;height:40px;border-radius:999px;background:#fff;border:1px solid rgba(27,24,21,0.08);box-shadow:var(--shadow-xs);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink);transition:transform 120ms">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><path d="m15 18-6-6 6-6"></path></svg>
+</div>
+<span style="font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-mute)">{{ detail.category }}</span>
+<div style="width:40px"></div>
+</div>
+<div data-scroll="1" style="flex:1;overflow-y:auto;padding:26px 20px 200px;scrollbar-width:none">
+<h1 style="font-family:var(--font-serif);font-weight:400;font-size:28px;line-height:1.15;letter-spacing:-0.02em;color:var(--ink);margin:0;text-wrap:pretty">{{ detail.title }}</h1>
+<div style="margin-top:12px;font-size:14px;line-height:1.5;color:var(--ink-mute)">{{ detail.subjectLine }}</div>
+<div style="margin-top:22px;background:#fff;border-radius:22px;box-shadow:var(--shadow-xs);display:flex;flex-direction:column">
+<div onClick="{{ cycleOwner }}" style="display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid rgba(27,24,21,0.06);cursor:pointer">
+<span style="font-size:13px;color:var(--ink-mute)">Owner</span>
+<span style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:500;color:var(--ink)"><span style="{{ detail.ownerStyle }}">{{ detail.ownerInitial }}</span><span>{{ detail.ownerName }}</span></span>
+</div>
+<div onClick="{{ cyclePriority }}" style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid rgba(27,24,21,0.06);cursor:pointer">
+<span style="font-size:13px;color:var(--ink-mute)">Priority</span>
+<span style="font-size:14px;font-weight:500;color:var(--ink)">{{ detail.priority }}</span>
+</div>
+<div onClick="{{ cycleDue }}" style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid rgba(27,24,21,0.06);cursor:pointer">
+<span style="font-size:13px;color:var(--ink-mute)">Due</span>
+<span style="font-size:14px;font-weight:500;color:var(--ink)">{{ detail.dueLabel }}</span>
+</div>
+<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px">
+<span style="font-size:13px;color:var(--ink-mute)">Review</span>
+<span style="font-size:14px;font-weight:500;color:var(--ink)">{{ detail.reviewLabel }}</span>
+</div>
+</div>
+<div style="margin-top:26px;font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-mute)">Summary</div>
+<div style="margin-top:10px;font-size:15px;line-height:1.6;color:var(--ink-soft);text-wrap:pretty">{{ detail.summary }}</div>
+<sc-if value="{{ detail.hasDraft }}" hint-placeholder-val="{{ false }}">
+<div style="margin-top:26px;font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-mute)">Draft by LOLI</div>
+<div style="margin-top:10px;padding:14px 16px;border-radius:16px;background:#fff;box-shadow:var(--shadow-xs);font-size:13px;line-height:1.55;color:var(--ink-soft);white-space:pre-wrap">{{ detail.draft }}</div>
+</sc-if>
+<span onClick="{{ detailGmail }}" style="display:inline-block;margin-top:18px;font-size:13px;font-weight:600;color:var(--ink-mute);cursor:pointer;text-decoration:underline;text-underline-offset:3px">Open in Gmail</span>
+</div>
+<div style="position:absolute;left:0;right:0;bottom:0;padding:28px 20px 44px;display:flex;flex-direction:column;gap:12px;background:linear-gradient(180deg, rgba(246,244,239,0) 0%, #F6F4EF 32%)">
+<div style="display:flex;gap:8px">
+<div onClick="{{ snoozeLater }}" style-active="transform:scale(0.97)" style="flex:1;padding:11px 0;border-radius:999px;background:#fff;border:1px solid rgba(27,24,21,0.1);font-size:13px;font-weight:600;color:var(--ink);text-align:center;cursor:pointer;transition:transform 120ms">Later today</div>
+<div onClick="{{ snoozeTomorrow }}" style-active="transform:scale(0.97)" style="flex:1;padding:11px 0;border-radius:999px;background:#fff;border:1px solid rgba(27,24,21,0.1);font-size:13px;font-weight:600;color:var(--ink);text-align:center;cursor:pointer;transition:transform 120ms">Tomorrow</div>
+<div onClick="{{ snoozeNextWeek }}" style-active="transform:scale(0.97)" style="flex:1;padding:11px 0;border-radius:999px;background:#fff;border:1px solid rgba(27,24,21,0.1);font-size:13px;font-weight:600;color:var(--ink);text-align:center;cursor:pointer;transition:transform 120ms">Next week</div>
+</div>
+<div onClick="{{ detailPrimary }}" style-active="transform:scale(0.97)" style="height:54px;border-radius:999px;background:var(--ink);color:var(--paper);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;cursor:pointer;box-shadow:0 12px 28px rgba(27,24,21,0.18);transition:transform 120ms">{{ detail.primaryLabel }}</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isFocus }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Focus" style="position:absolute;inset:0;z-index:26;background:var(--paper-cool);overflow:hidden;display:flex;flex-direction:column;animation:fadeIn 320ms">
+<div style="position:absolute;inset:-25%;background:radial-gradient(ellipse 55% 50% at 30% 35%, #C9B8E8 0%, #F7C8D6 45%, rgba(247,200,214,0) 78%), radial-gradient(ellipse 45% 45% at 78% 72%, #A8C5F0 0%, rgba(168,197,240,0) 72%);filter:blur(48px);animation:auraDrift 14s ease-in-out infinite;pointer-events:none"></div>
+<div style="position:relative;padding:66px 20px 0;display:flex;align-items:center;justify-content:space-between">
+<div onClick="{{ exitFocus }}" style-active="transform:scale(0.95)" style="width:40px;height:40px;border-radius:999px;background:rgba(255,255,255,0.45);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.6);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink);transition:transform 120ms">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+</div>
+<div style="padding:9px 14px;border-radius:999px;background:rgba(255,255,255,0.45);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.6);font-size:12px;font-weight:600;color:var(--ink)">{{ focus.counter }}</div>
+</div>
+<div style="position:relative;flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 28px">
+<div style="{{ focus.fadeStyle }}">
+<span style="font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-mute)">{{ focus.category }}</span>
+<h1 style="font-family:var(--font-serif);font-weight:400;font-size:32px;line-height:1.1;letter-spacing:-0.02em;color:var(--ink);margin:0;text-wrap:pretty">{{ focus.title }}</h1>
+<div style="font-size:14px;line-height:1.5;color:var(--ink-mute)">{{ focus.subject }}</div>
+<div style="display:flex;align-items:center;gap:10px;font-size:14px;color:var(--ink-mute);margin-top:4px"><span style="{{ focus.ownerStyle }}">{{ focus.ownerInitial }}</span><span>{{ focus.meta }}</span></div>
+</div>
+</div>
+<div style="position:relative;padding:0 20px 48px;display:flex;flex-direction:column;gap:10px">
+<div onClick="{{ focusDone }}" style-active="transform:scale(0.97)" style="height:54px;border-radius:999px;background:var(--ink);color:var(--paper);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;cursor:pointer;box-shadow:0 12px 28px rgba(27,24,21,0.18);transition:transform 120ms">Done</div>
+<div style="display:flex;gap:8px">
+<div onClick="{{ focusLater }}" style-active="transform:scale(0.97)" style="flex:1;padding:13px 0;border-radius:999px;background:rgba(255,255,255,0.5);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.7);font-size:13px;font-weight:600;color:var(--ink);text-align:center;cursor:pointer;transition:transform 120ms">Tomorrow</div>
+<div onClick="{{ focusSkip }}" style-active="transform:scale(0.97)" style="flex:1;padding:13px 0;border-radius:999px;background:rgba(255,255,255,0.5);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.7);font-size:13px;font-weight:600;color:var(--ink);text-align:center;cursor:pointer;transition:transform 120ms">Skip</div>
+</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isDone }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="All done" style="position:absolute;inset:0;z-index:27;background:var(--paper);overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 32px;animation:fadeIn 600ms">
+<div style="position:absolute;inset:-15%;background:radial-gradient(ellipse 60% 55% at 50% 42%, #FFE3A8 0%, #FFB59A 22%, #F7C8D6 48%, #C9B8E8 70%, rgba(201,184,232,0) 88%);filter:blur(46px);animation:auraBreathe 8s ease-in-out infinite;pointer-events:none"></div>
+<div style="position:absolute;top:66px;left:24px;display:flex;align-items:center;gap:8px"><span style="width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 35%, #fff 0%, #F7C8D6 35%, #C9B8E8 70%, #A8C5F0 100%)"></span><span style="font-family:var(--font-serif);font-style:italic;font-size:19px;color:var(--ink);letter-spacing:-0.01em">tend</span></div>
+<div style="position:relative;display:flex;flex-direction:column;align-items:center;gap:14px;animation:riseIn 700ms cubic-bezier(0.2,0.8,0.3,1) both">
+<span style="font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-mute)">{{ dateLine }}</span>
+<h1 style="font-family:var(--font-serif);font-weight:400;font-style:italic;font-size:46px;line-height:1;letter-spacing:-0.02em;color:var(--ink);margin:0;text-wrap:balance">Inbox clear.</h1>
+<div style="font-size:15px;color:var(--ink-soft);margin-top:4px">{{ doneSummary }}</div>
+</div>
+<div style="position:absolute;left:20px;right:20px;bottom:48px;display:flex;flex-direction:column;gap:12px;align-items:stretch">
+<div onClick="{{ goReview }}" style-active="transform:scale(0.97)" style="height:54px;border-radius:999px;background:var(--ink);color:var(--paper);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;cursor:pointer;box-shadow:0 12px 28px rgba(27,24,21,0.18);transition:transform 120ms">Review drafts</div>
+<span onClick="{{ goToday }}" style="font-size:13px;font-weight:600;color:var(--ink-mute);cursor:pointer;padding:6px 12px;text-align:center">Back to today</span>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ sheetOpen }}" hint-placeholder-val="{{ false }}">
+<div onClick="{{ closeSheet }}" style="position:absolute;inset:0;background:rgba(27,24,21,0.3);z-index:30;animation:fadeIn 220ms"></div>
+<div data-screen-label="Quick add" style="position:absolute;left:8px;right:8px;bottom:8px;z-index:31;background:#fff;border-radius:28px;padding:14px 20px 16px;box-shadow:var(--shadow-xl);display:flex;flex-direction:column;gap:14px;animation:sheetUp 340ms cubic-bezier(0.2,0.8,0.3,1)">
+<div style="width:36px;height:4px;border-radius:2px;background:var(--linen);margin:0 auto"></div>
+<input ref="{{ inputRef }}" value="{{ draft }}" onChange="{{ onDraft }}" onKeyDown="{{ onDraftKey }}" placeholder="New task — try “Send GA files to Unzile tomorrow 9am @Fernanda”" style="border:none;outline:none;background:transparent;font-family:var(--font-sans);font-size:17px;color:var(--ink);padding:6px 0;width:100%;box-sizing:border-box">
+<div style="display:flex;gap:6px;flex-wrap:wrap">
+<div onClick="{{ cycleDraftDue }}" style="{{ dueChip.style }}">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="3"></rect><path d="M3 10h18"></path></svg>
+<span>{{ dueChip.label }}</span>
+</div>
+<div onClick="{{ cycleDraftOwner }}" style="{{ ownerChip.style }}"><span style="{{ ownerChip.avatarStyle }}">{{ ownerChip.initial }}</span><span>{{ ownerChip.label }}</span></div>
+<div onClick="{{ cycleDraftPriority }}" style="{{ priorityChip.style }}"><span>{{ priorityChip.label }}</span></div>
+</div>
+<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:2px">
+<span style="font-size:12px;color:var(--ink-faint);line-height:1.4">Creates a Smart Inbox item. Dates, @people and “high” are picked up as you type.</span>
+<div onClick="{{ addTask }}" style-active="transform:scale(0.97)" style="{{ addBtnStyle }}">Add</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;left:50%;bottom:108px;transform:translateX(-50%);z-index:40;display:flex;align-items:center;gap:16px;padding:12px 18px;border-radius:999px;background:rgba(27,24,21,0.92);color:var(--paper);font-size:13px;font-weight:500;box-shadow:var(--shadow-lg);white-space:nowrap;max-width:340px;animation:fadeUp 260ms cubic-bezier(0.2,0.8,0.3,1)">
+<span style="overflow:hidden;text-overflow:ellipsis">{{ toast.text }}</span>
+<sc-if value="{{ toast.canUndo }}" hint-placeholder-val="{{ false }}"><span onClick="{{ undo }}" style="color:#FFB59A;font-weight:700;cursor:pointer">Undo</span></sc-if>
+</div>
+</sc-if>
+
+</div>
+</x-import>
+
+<aside style="width:250px;display:flex;flex-direction:column;gap:24px;font-size:13px;line-height:1.6;color:var(--ink-mute)">
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:center;gap:9px"><span style="width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 35% 35%, #fff 0%, #F7C8D6 35%, #C9B8E8 70%, #A8C5F0 100%)"></span><span style="font-family:var(--font-serif);font-style:italic;font-size:26px;color:var(--ink);letter-spacing:-0.01em">tend</span></div>
+<span style="color:var(--ink-soft)">Your Smart Inbox on a phone. Today lists every open action item, Carla first, then the team. Review holds LOLI’s drafts waiting for a decision.</span>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px">
+<span style="font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-faint)">Try</span>
+<span>Switch Carla ↔ Barbara in the header — Barbara sees only approved and handed-off items.</span>
+<span>Review: approve, ask for changes with feedback, hand to Barbara, edit the draft inline.</span>
+<span>Swipe right to complete, left for tomorrow. Hold the grip to reorder.</span>
+<span>Changes queue until a relay URL is set in Tweaks — see sync-spec.md.</span>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px">
+<span style="font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-faint)">Data</span>
+<span>Snapshot of the “Tasks” view (action required, not completed) from 3 Sept. Next actions stay as written in Notion; UI is English.</span>
+</div>
+</aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;startScreen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;today&quot;,&quot;options&quot;:[&quot;today&quot;,&quot;review&quot;,&quot;people&quot;,&quot;week&quot;,&quot;focus&quot;,&quot;done&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Navigation&quot;},&quot;mode&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;carla&quot;,&quot;options&quot;:[&quot;carla&quot;,&quot;barbara&quot;],&quot;tsType&quot;:&quot;'carla'|'barbara'&quot;,&quot;section&quot;:&quot;Navigation&quot;},&quot;headerAura&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Look&quot;},&quot;dataUrl&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;./smart-inbox.json&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Sync&quot;},&quot;relayUrl&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Sync&quot;}}">
+class Component extends DCLogic {
+  people = [
+    { id: 'carla', name: 'Carla Guilhem', short: 'Carla', initial: 'C', bg: 'linear-gradient(135deg,#FFB59A,#F7C8D6)', keys: ['carla'] },
+    { id: 'fernanda', name: 'Fernanda Britto', short: 'Fernanda', initial: 'F', bg: 'linear-gradient(135deg,#C9B8E8,#A8C5F0)', keys: ['fernanda'] },
+    { id: 'luiz', name: 'Luiz Eduardo Greco', short: 'Luiz', initial: 'L', bg: 'linear-gradient(135deg,#B8E0CA,#FFE3A8)', keys: ['luiz', 'eduardo'] },
+    { id: 'alessandra', name: 'Alessandra Lopes', short: 'Alessandra', initial: 'A', bg: 'linear-gradient(135deg,#E89BB5,#FFB59A)', keys: ['alessandra'] },
+    { id: 'nicola', name: 'Nicola', short: 'Nicola', initial: 'N', bg: 'linear-gradient(135deg,#A8C5F0,#B8E0CA)', keys: ['nicola'] },
+    { id: 'none', name: 'Unassigned', short: 'Unassigned', initial: '?', bg: 'linear-gradient(135deg,#E8E4DA,#DCD7CB)', keys: [] },
+  ];
+  catColors = { 'Finance': '#B8E0CA', 'Project / Work': '#C9B8E8', 'Action required': '#FFB59A', 'Scheduling': '#FFE3A8', 'Legal': '#F7C8D6', 'System / Notification': '#DCD7CB', 'Client / Sales': '#A8C5F0', 'Personal': '#E89BB5' };
+  prioRank = { High: 0, Medium: 1, Low: 2 };
+  dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  today = (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; })();
+  inputRef = React.createRef();
+  state = {
+    screen: 'today', mode: 'carla', filter: 'all', weekSel: 0, ownerId: 'carla', detailId: null,
+    focusIdx: 0, focusOut: false,
+    sheetOpen: false, draft: '', draftDue: undefined, draftOwner: null, draftPriority: undefined,
+    gesture: null, anim: null, toast: null, loading: true, tasks: [], pending: [],
+    review: {},
+  };
+
+  componentDidMount() {
+    this.load();
+    this.applyStart(this.props.startScreen);
+    if (this.props.mode) this.setState({ mode: this.props.mode });
+  }
+  componentDidUpdate(prev) {
+    if (prev.startScreen !== this.props.startScreen) this.applyStart(this.props.startScreen);
+    if (prev.mode !== this.props.mode && this.props.mode) this.setState({ mode: this.props.mode });
+    if (prev.dataUrl !== this.props.dataUrl) this.load();
+    if (this.state.sheetOpen && !this.prevSheet && this.inputRef.current) this.inputRef.current.focus();
+    this.prevSheet = this.state.sheetOpen;
+  }
+  componentWillUnmount() { [this.toastTimer, this.animTimer, this.doneTimer, this.focusTimer, this.pollTimer].forEach(clearTimeout); }
+  applyStart(s) {
+    if (!s || s === this.state.screen) return;
+    if (s === 'focus') this.startFocus(); else this.setState({ screen: s, detailId: null, sheetOpen: false });
+  }
+
+  // ---- data + relay
+  async load() {
+    const url = this.props.dataUrl || './smart-inbox.json';
+    try {
+      const r = await fetch(url, { cache: 'no-store' }); const j = await r.json();
+      const items = (j.items || []).map(t => ({ feedback: null, gmail: null, ...t }));
+      if (!this.state.pending.length) this.setState({ tasks: items, loading: false }); else this.setState({ loading: false });
+    } catch (e) { this.setState({ loading: false }); this.toast('Could not load the Smart Inbox'); }
+    clearTimeout(this.pollTimer);
+    if (this.props.dataUrl && this.props.dataUrl !== './smart-inbox.json') this.pollTimer = setTimeout(() => this.load(), 60000);
+  }
+  relay(op) {
+    const base = this.props.relayUrl;
+    if (!base) { this.setState(s => ({ pending: [...s.pending, op] })); return; }
+    fetch(`${base.replace(/\/$/, '')}/smart-inbox/${op.kind}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...op, actor: this.state.mode }) })
+      .catch(() => { this.setState(s => ({ pending: [...s.pending, op] })); this.toast('Relay unreachable — change queued'); });
+  }
+  patch(id, patch) { this.updateTask(id, patch); this.relay({ kind: 'update', id, patch }); }
+
+  // ---- helpers
+  addDays(n) { const d = new Date(this.today); d.setDate(d.getDate() + n); return d; }
+  iso(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+  off(t) { if (!t.due) return null; const d = new Date(t.due.slice(0, 10) + 'T00:00:00'); return Math.round((d - this.today) / 86400000); }
+  person(id) { return this.people.find(p => p.id === id) || this.people[this.people.length - 1]; }
+  isOpen(t) { return !t.completed; }
+  inMode(t) { return this.state.mode === 'carla' ? true : (t.review === 'Approved' || t.review === 'Barbara to handle'); }
+  sortTasks(a, b) { const pa = this.prioRank[a.priority] ?? 3, pb = this.prioRank[b.priority] ?? 3; if (pa !== pb) return pa - pb; const oa = this.off(a), ob = this.off(b); if (oa === null && ob === null) return 0; if (oa === null) return 1; if (ob === null) return -1; return oa - ob; }
+  dueLabel(t) {
+    const d = this.off(t); let s;
+    if (d === null) s = 'No date';
+    else if (d === 0) s = 'Today'; else if (d === 1) s = 'Tomorrow'; else if (d === -1) s = 'Yesterday';
+    else if (d < -1) s = `${-d} days ago`;
+    else if (d < 7) s = this.dayNames[this.addDays(d).getDay()];
+    else { const dt = this.addDays(d); s = `${dt.getDate()} ${this.monthNames[dt.getMonth()].slice(0, 3)}`; }
+    return t.time ? `${s}, ${t.time}` : s;
+  }
+  avatarStyle(p, size, fs, extra) {
+    return { width: size, height: size, borderRadius: '50%', flex: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: fs, fontWeight: 700, color: 'var(--ink)', background: p.bg, boxSizing: 'border-box', ...(extra || {}) };
+  }
+  reviewPill(review) {
+    const m = { 'Pending review': ['var(--warning-soft)', 'var(--warning)', 'Draft ready'], 'Approved': ['var(--success-soft)', 'var(--success)', 'Approved'], 'Changes requested': ['var(--danger-soft)', 'var(--danger)', 'Changes asked'], 'Barbara to handle': ['var(--info-soft)', 'var(--info)', 'With Barbara'] }[review];
+    if (!m) return null;
+    return { label: m[2], style: { flex: 'none', padding: '2px 8px', borderRadius: 999, background: m[0], color: m[1], fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap' } };
+  }
+  toast(text, canUndo) {
+    clearTimeout(this.toastTimer);
+    this.setState({ toast: { text, canUndo: !!canUndo } });
+    this.toastTimer = setTimeout(() => this.setState({ toast: null }), 3400);
+  }
+  updateTask(id, patch, cb) { this.setState(s => ({ tasks: s.tasks.map(t => t.id === id ? { ...t, ...patch } : t) }), cb); }
+
+  // ---- lists
+  openTasks() { const s = this.state; return s.tasks.filter(t => this.isOpen(t) && this.inMode(t)); }
+  groupList() {
+    const s = this.state;
+    if (s.screen === 'today') {
+      const open = this.openTasks().filter(t => s.filter === 'all' || t.owner === s.filter);
+      return this.people.filter(p => open.some(t => t.owner === p.id)).map(p => ({ key: p.id, person: p, rows: open.filter(t => t.owner === p.id).sort((a, b) => this.sortTasks(a, b)) }));
+    }
+    if (s.screen === 'week') { const rows = this.openTasks().filter(t => this.off(t) === s.weekSel).sort((a, b) => this.sortTasks(a, b)); return rows.length ? [{ key: 'day', person: null, rows }] : []; }
+    if (s.screen === 'owner') { const rows = this.openTasks().filter(t => t.owner === s.ownerId).sort((a, b) => this.sortTasks(a, b)); return rows.length ? [{ key: 'owner', person: null, rows }] : []; }
+    return [];
+  }
+  groupRows(key) { const g = this.groupList().find(x => x.key === key); return g ? g.rows : []; }
+  listRows2() {
+    const s = this.state;
+    if (s.screen === 'today') return s.tasks.filter(t => t.completed && (s.filter === 'all' || t.owner === s.filter));
+    if (s.screen === 'week') return this.openTasks().filter(t => this.off(t) === null);
+    if (s.screen === 'owner') return s.tasks.filter(t => t.completed && t.owner === s.ownerId);
+    return [];
+  }
+  shiftFor(i, g) {
+    if (g.from < g.to && i > g.from && i <= g.to) return -g.slot;
+    if (g.from > g.to && i >= g.to && i < g.from) return g.slot;
+    return 0;
+  }
+  decorate(t, i, primary, gkey) {
+    const s = this.state, g = s.gesture;
+    const anim = s.anim && s.anim.id === t.id ? s.anim.type : null;
+    const owner = this.person(t.owner);
+    const ease = 'cubic-bezier(0.2,0.8,0.3,1)';
+    let dragStyle = { position: 'relative', borderRadius: 18, transform: 'translateY(0)', transition: `transform 220ms ${ease}, box-shadow 200ms` };
+    let swipeStyle = { position: 'relative', transform: 'translateX(0)', opacity: 1, transition: `transform 280ms ${ease}, opacity 400ms` };
+    if (primary && g && g.type === 'drag' && g.gkey === gkey) {
+      if (g.id === t.id) dragStyle = { ...dragStyle, transform: `translateY(${g.dy}px) scale(1.02)`, zIndex: 5, boxShadow: '0 18px 48px rgba(27,24,21,0.14)', transition: 'box-shadow 200ms' };
+      else dragStyle = { ...dragStyle, transform: `translateY(${this.shiftFor(i, g)}px)` };
+    }
+    if (primary && g && g.type === 'swipe' && g.id === t.id && g.moved) swipeStyle = { ...swipeStyle, transform: `translateX(${g.dx}px)`, transition: 'none' };
+    if (anim === 'complete') swipeStyle = { ...swipeStyle, transform: 'translateX(0)', opacity: 0.35 };
+    if (anim === 'snooze') swipeStyle = { ...swipeStyle, transform: 'translateX(-110%)', opacity: 0, transition: `transform 300ms ${ease}, opacity 300ms` };
+    const checked = t.completed || anim === 'complete';
+    const checkStyle = { width: 26, height: 26, borderRadius: '50%', flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box', color: 'var(--ink)', transition: 'all 280ms', border: checked ? '1.5px solid transparent' : '1.5px solid rgba(27,24,21,0.28)', background: checked ? 'linear-gradient(135deg,#B8E0CA,#A8C5F0)' : 'transparent', boxShadow: anim === 'complete' ? '0 0 24px 6px rgba(184,224,202,0.6)' : 'none' };
+    const d = this.off(t);
+    const metaText = `${t.from}${d !== null ? ' · ' + this.dueLabel(t) : ''}`;
+    const rp = this.reviewPill(t.review);
+    return {
+      key: t.id, id: t.id, title: t.action, subject: t.subject, checked, checkStyle, metaText, dragStyle, swipeStyle,
+      isHigh: t.priority === 'High', hasReview: !!rp, reviewLabel: rp ? rp.label : '', reviewStyle: rp ? rp.style : {},
+      dotStyle: { width: 7, height: 7, borderRadius: '50%', flex: 'none', background: this.catColors[t.category] || 'var(--linen)' },
+      ownerStyle: this.avatarStyle(owner, 28, 11), ownerInitial: owner.initial,
+      titleStyle: { fontSize: 15, fontWeight: 500, lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: t.completed ? 'var(--ink-faint)' : 'var(--ink)', textDecoration: t.completed ? 'line-through' : 'none' },
+      onDown: e => this.rowDown(e, t.id, gkey), onMove: e => this.rowMove(e, t.id), onUp: e => this.rowUp(e, t.id), onCancel: e => this.rowCancel(e, t.id),
+      onOpen: () => this.openDetail(t.id), onToggle: e => { e.stopPropagation(); this.complete(t.id); },
+    };
+  }
+
+  // ---- gestures
+  rowDown(e, id, gkey) {
+    if (e.button !== undefined && e.button !== 0) return;
+    if (this.state.anim && this.state.anim.id === id) return;
+    const target = e.target;
+    const isGrip = !!(target.closest && target.closest('[data-grip]'));
+    const isCheck = !!(target.closest && target.closest('[data-check]'));
+    const rows = this.groupRows(gkey); const idx = rows.findIndex(t => t.id === id);
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
+    const rect = e.currentTarget.getBoundingClientRect();
+    this.setState({ gesture: { type: isGrip ? 'drag' : 'swipe', id, gkey, x0: e.clientX, y0: e.clientY, dx: 0, dy: 0, t0: Date.now(), kind: isCheck ? 'check' : isGrip ? 'grip' : 'body', from: idx, to: idx, slot: rect.height + 8, n: rows.length, moved: false } });
+  }
+  rowMove(e, id) {
+    const g = this.state.gesture; if (!g || g.id !== id) return;
+    const dx = e.clientX - g.x0, dy = e.clientY - g.y0;
+    if (g.type === 'drag') { const to = Math.max(0, Math.min(g.n - 1, g.from + Math.round(dy / g.slot))); this.setState({ gesture: { ...g, dy, to, moved: g.moved || Math.abs(dy) > 3 } }); }
+    else { if (!g.moved && Math.abs(dx) < 5) return; const lim = 150, ad = Math.min(Math.abs(dx), lim + (Math.abs(dx) - lim) * 0.25); this.setState({ gesture: { ...g, dx: Math.sign(dx) * ad, moved: true } }); }
+  }
+  rowUp(e, id) {
+    const g = this.state.gesture; if (!g || g.id !== id) return;
+    this.setState({ gesture: null });
+    if (g.type === 'drag') { if (g.to !== g.from && g.moved) this.reorder(g.gkey, g.from, g.to); return; }
+    if (!g.moved) { if (g.kind === 'check') this.complete(id); else if (g.kind === 'body') this.openDetail(id); return; }
+    if (g.dx > 80) this.complete(id); else if (g.dx < -80) this.snooze(id, 1, 'Moved to tomorrow');
+  }
+  rowCancel(e, id) { const g = this.state.gesture; if (g && g.id === id) this.setState({ gesture: null }); }
+  reorder(gkey, from, to) {
+    const ids = this.groupRows(gkey).map(t => t.id);
+    const [m] = ids.splice(from, 1); ids.splice(to, 0, m);
+    // manual order: give moved rows a sort key by rewriting priority order is destructive; keep visual order via a local rank
+    const rank = {}; ids.forEach((id, k) => { rank[id] = k; });
+    this.setState(s => ({ tasks: s.tasks.map(t => rank[t.id] !== undefined ? { ...t, _rank: rank[t.id] } : t) }));
+    this.sortTasks = (a, b) => { if (a._rank !== undefined && b._rank !== undefined) return a._rank - b._rank; return Component.prototype.sortTasks.call(this, a, b); };
+  }
+
+  // ---- actions
+  complete(id) {
+    const t = this.state.tasks.find(x => x.id === id); if (!t) return;
+    if (t.completed) { this.patch(id, { completed: false }); this.toast('Reopened'); return; }
+    clearTimeout(this.animTimer);
+    this.setState({ anim: { id, type: 'complete' } });
+    this.animTimer = setTimeout(() => {
+      this.lastAction = { type: 'complete', id };
+      this.setState({ anim: null });
+      this.patch(id, { completed: true });
+      this.toast('Completed', true); this.checkAllDone();
+    }, 560);
+  }
+  snooze(id, to, label, immediate) {
+    const t = this.state.tasks.find(x => x.id === id); if (!t) return;
+    const p = to === 'later' ? { due: this.iso(this.today), time: '17:30' } : { due: this.iso(this.addDays(to)), time: null };
+    const apply = () => { this.lastAction = { type: 'snooze', id, prev: { due: t.due, time: t.time } }; this.setState({ anim: null }); this.patch(id, p); this.toast(label || 'Moved', true); };
+    if (immediate) { apply(); return; }
+    clearTimeout(this.animTimer);
+    this.setState({ anim: { id, type: 'snooze' } });
+    this.animTimer = setTimeout(apply, 300);
+  }
+  undo() {
+    const a = this.lastAction; if (!a) return; this.lastAction = null; clearTimeout(this.doneTimer);
+    if (a.type === 'complete') this.patch(a.id, { completed: false });
+    if (a.type === 'snooze') this.patch(a.id, a.prev);
+    if (a.type === 'review') this.patch(a.id, a.prev);
+    if (a.type === 'add') this.setState(s => ({ tasks: s.tasks.filter(t => t.id !== a.id) }));
+    this.setState(s => ({ toast: null, screen: s.screen === 'done' ? 'today' : s.screen }));
+  }
+  checkAllDone() {
+    const s = this.state;
+    if (s.screen !== 'today' && s.screen !== 'focus') return;
+    if (this.openTasks().length === 0) { clearTimeout(this.doneTimer); this.doneTimer = setTimeout(() => this.setState({ screen: 'done', toast: null }), 650); }
+  }
+  setReview(id, review, feedback) {
+    const t = this.state.tasks.find(x => x.id === id); if (!t) return;
+    this.lastAction = { type: 'review', id, prev: { review: t.review, feedback: t.feedback } };
+    const p = { review }; if (feedback !== undefined) p.feedback = feedback;
+    this.patch(id, p);
+    this.setReviewUi(id, { asking: null, editing: false });
+    this.toast({ 'Approved': 'Approved — Barbara will send it', 'Changes requested': 'Sent back to LOLI', 'Barbara to handle': 'Handed to Barbara' }[review] || 'Updated', true);
+  }
+  setReviewUi(id, patch) { this.setState(s => ({ review: { ...s.review, [id]: { ...(s.review[id] || {}), ...patch } } })); }
+
+  // ---- detail
+  openDetail(id) { this.setState({ detailId: id }); }
+  cycleIn(list, cur) { const i = list.indexOf(cur); return list[(i + 1) % list.length]; }
+  detailVals() {
+    const t = this.state.tasks.find(x => x.id === this.state.detailId);
+    if (!t) return {};
+    const owner = this.person(t.owner);
+    return {
+      title: t.action, category: t.category, subjectLine: `${t.from} — ${t.subject}`,
+      ownerName: owner.short, ownerInitial: owner.initial, ownerStyle: this.avatarStyle(owner, 24, 10),
+      priority: t.priority || 'None', dueLabel: this.dueLabel(t), reviewLabel: t.review || '—',
+      summary: t.summary || 'No summary.', hasDraft: !!t.draft, draft: t.draft,
+      primaryLabel: t.completed ? 'Reopen' : 'Mark completed',
+    };
+  }
+  detailPrimary() {
+    const id = this.state.detailId; const t = this.state.tasks.find(x => x.id === id); if (!t) return;
+    if (t.completed) { this.patch(id, { completed: false }); this.toast('Reopened'); return; }
+    this.lastAction = { type: 'complete', id };
+    this.setState({ detailId: null }); this.patch(id, { completed: true }); this.toast('Completed', true); this.checkAllDone();
+  }
+
+  // ---- focus
+  focusQueue() { const s = this.state; return this.openTasks().filter(t => s.filter === 'all' || t.owner === s.filter).sort((a, b) => this.sortTasks(a, b)); }
+  startFocus() {
+    if (!this.focusQueue().length) { this.toast('Nothing open'); return; }
+    this.setState({ screen: 'focus', focusIdx: 0, focusOut: false, detailId: null, sheetOpen: false });
+  }
+  focusStep(fn) {
+    const q = this.focusQueue(); const t = q[Math.min(this.state.focusIdx, q.length - 1)]; if (!t) return;
+    clearTimeout(this.focusTimer); this.setState({ focusOut: true });
+    this.focusTimer = setTimeout(() => fn(t), 240);
+  }
+  focusDone() {
+    this.focusStep(t => {
+      this.lastAction = { type: 'complete', id: t.id };
+      this.setState({ focusOut: false }); this.patch(t.id, { completed: true });
+      setTimeout(() => { const left = this.focusQueue(); if (!left.length) this.setState({ screen: 'done' }); else this.setState(s => ({ focusIdx: Math.min(s.focusIdx, left.length - 1) })); }, 0);
+    });
+  }
+  focusLater() {
+    this.focusStep(t => {
+      this.lastAction = { type: 'snooze', id: t.id, prev: { due: t.due, time: t.time } };
+      this.setState({ focusOut: false }); this.patch(t.id, { due: this.iso(this.addDays(1)) }); this.toast('Moved to tomorrow', true);
+      setTimeout(() => { const left = this.focusQueue(); this.setState(s => ({ focusIdx: Math.min(s.focusIdx, Math.max(0, left.length - 1)) })); }, 0);
+    });
+  }
+  focusSkip() { const n = this.focusQueue().length; if (n < 2) return; this.focusStep(() => this.setState(s => ({ focusIdx: (s.focusIdx + 1) % n, focusOut: false }))); }
+
+  // ---- quick add
+  defaultDue() { return this.state.screen === 'week' ? this.state.weekSel : null; }
+  parseDraft(raw) {
+    let text = ' ' + raw + ' ';
+    const out = { due: undefined, time: null, owner: null, priority: null };
+    const eat = (re, fn) => { const m = text.match(re); if (m) { fn(m); text = text.replace(m[0], ' '); } };
+    this.people.forEach(p => p.keys.forEach(k => eat(new RegExp('\\s(?:@|for\\s)' + k + '\\b', 'i'), () => { out.owner = p.id; })));
+    eat(/\s@me\b/i, () => { out.owner = this.state.mode === 'carla' ? 'carla' : 'none'; });
+    eat(/\s(high|urgent)\b/i, () => { out.priority = 'High'; });
+    eat(/\s(low)\b/i, () => { out.priority = 'Low'; });
+    eat(/\s(?:at\s)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/i, m => { let h = (+m[1]) % 12; if (m[3].toLowerCase() === 'pm') h += 12; out.time = `${String(h).padStart(2, '0')}:${m[2] || '00'}`; });
+    if (!out.time) eat(/\s(?:at\s)?([01]?\d|2[0-3]):([0-5]\d)\b/, m => { out.time = `${String(+m[1]).padStart(2, '0')}:${m[2]}`; });
+    eat(/\s(today|tonight)\b/i, () => { out.due = 0; });
+    eat(/\s(tomorrow|tmrw|tmr)\b/i, () => { out.due = 1; });
+    eat(/\snext\sweek\b/i, () => { out.due = 7; });
+    eat(/\sin\s(\d+)\sdays?\b/i, m => { out.due = +m[1]; });
+    eat(/\s(?:on\s|by\s)?(next\s)?(mon|tue|wed|thu|fri|sat|sun)(?:day|sday|nesday|rsday|urday)?\b/i, m => { const idx = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'].indexOf(m[2].toLowerCase()); let diff = (idx - this.today.getDay() + 7) % 7; if (diff === 0) diff = 7; if (m[1]) diff += 7; out.due = diff; });
+    let title = text.replace(/\s+/g, ' ').trim().replace(/[\s,]+(at|on|by|for)$/i, '').replace(/^(at|on|by|for)\s+/i, '');
+    if (title) title = title[0].toUpperCase() + title.slice(1);
+    return { ...out, title };
+  }
+  effectiveDraft() {
+    const s = this.state, p = this.parseDraft(s.draft);
+    const due = s.draftDue !== undefined ? s.draftDue : (p.due !== undefined ? p.due : this.defaultDue());
+    return { title: p.title, time: p.time, due, dueParsed: p.due !== undefined || s.draftDue !== undefined, owner: s.draftOwner || p.owner || (s.mode === 'carla' ? 'carla' : 'none'), ownerParsed: !!(s.draftOwner || p.owner), priority: s.draftPriority !== undefined ? s.draftPriority : (p.priority || 'Medium'), prioParsed: !!(p.priority || s.draftPriority !== undefined) };
+  }
+  chipStyle(active, pad) {
+    return { display: 'inline-flex', alignItems: 'center', gap: 6, padding: pad || '7px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 200ms', background: active ? 'var(--ink)' : 'var(--paper-soft)', color: active ? 'var(--paper)' : 'var(--ink-soft)' };
+  }
+  addTask() {
+    const d = this.effectiveDraft(); if (!d.title) return;
+    const id = 'local-' + Date.now();
+    const task = { id, action: d.title, subject: d.title, from: this.state.mode === 'carla' ? 'Carla' : 'Barbara', owner: d.owner, priority: d.priority, category: 'Action required', review: null, draft: null, summary: '', due: d.due === null || d.due === undefined ? null : this.iso(this.addDays(d.due)), time: d.time, completed: false, feedback: null, gmail: null };
+    this.lastAction = { type: 'add', id };
+    this.setState(s => ({ tasks: [...s.tasks, task], sheetOpen: false, draft: '' }), () => { this.relay({ kind: 'create', id, action: task.action, owner: task.owner, due: task.due, priority: task.priority }); this.toast(`Added · ${this.dueLabel(task)}`, true); });
+  }
+
+  // ---- render
+  renderVals() {
+    const s = this.state;
+    const carla = s.mode === 'carla';
+    const isList = s.screen === 'today' || s.screen === 'week' || s.screen === 'owner';
+    const groupsRaw = this.groupList();
+    const groups = groupsRaw.map(g => ({ key: g.key, showLabel: !!g.person, label: g.person ? `${g.person.short} · ${g.rows.length}` : '', initial: g.person ? g.person.initial : '', avatarStyle: g.person ? this.avatarStyle(g.person, 18, 9) : {}, rows: g.rows.map((t, i) => this.decorate(t, i, true, g.key)) }));
+    const rowCount = groupsRaw.reduce((n, g) => n + g.rows.length, 0);
+    const rows2 = this.listRows2().map((t, i) => this.decorate(t, i, false, 'r2'));
+    const open = this.openTasks();
+    const dateLine = `${this.dayNames[this.today.getDay()]}, ${this.today.getDate()} ${this.monthNames[this.today.getMonth()]}`;
+    const pendingReview = s.tasks.filter(t => this.isOpen(t) && t.draft && (t.review === 'Pending review' || t.review === 'Changes requested'));
+    const handoff = s.tasks.filter(t => this.isOpen(t) && (t.review === 'Approved' || t.review === 'Barbara to handle'));
+    const reviewList = carla ? pendingReview : handoff;
+    const high = open.filter(t => t.priority === 'High').length;
+
+    const filterChips = [{ id: 'all', label: 'All', hasAvatar: false }, ...this.people.filter(p => open.some(t => t.owner === p.id)).map(p => ({ id: p.id, label: String(open.filter(t => t.owner === p.id).length), hasAvatar: true, initial: p.initial, avatarStyle: this.avatarStyle(p, 18, 9) }))].map(c => {
+      const active = s.filter === c.id;
+      return { ...c, key: c.id, onSelect: () => this.setState({ filter: c.id }), style: { display: 'inline-flex', alignItems: 'center', gap: 6, padding: c.hasAvatar ? '4px 11px 4px 5px' : '7px 13px', borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 200ms', background: active ? 'var(--ink)' : '#fff', color: active ? 'var(--paper)' : 'var(--ink-soft)', border: active ? '1px solid var(--ink)' : '1px solid rgba(27,24,21,0.08)', boxShadow: active ? '0 4px 12px rgba(27,24,21,0.16)' : 'var(--shadow-xs)' } };
+    });
+    const modeStyle = active => ({ padding: '6px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 200ms', background: active ? 'var(--ink)' : 'transparent', color: active ? 'var(--paper)' : 'var(--ink-mute)' });
+
+    const off = (this.today.getDay() + 6) % 7;
+    const mon = this.addDays(-off), sun = this.addDays(6 - off);
+    const weekRange = mon.getMonth() === sun.getMonth() ? `${mon.getDate()}–${sun.getDate()} ${this.monthNames[mon.getMonth()]}` : `${mon.getDate()} ${this.monthNames[mon.getMonth()]} – ${sun.getDate()} ${this.monthNames[sun.getMonth()]}`;
+    const weekDays = [0, 1, 2, 3, 4, 5, 6].map(i => {
+      const o = i - off, d = this.addDays(o), count = open.filter(t => this.off(t) === o).length, sel = o === s.weekSel, isT = o === 0;
+      return { key: i, label: 'MTWTFSS'[i], num: d.getDate(), dots: Array.from({ length: Math.min(count, 3) }, (_, k) => ({ key: k })), onSelect: () => this.setState({ weekSel: o }), style: { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '10px 0 8px', borderRadius: 16, cursor: 'pointer', transition: 'all 200ms', boxSizing: 'border-box', background: sel ? 'var(--ink)' : (isT ? '#fff' : 'transparent'), color: sel ? 'var(--paper)' : (o < 0 ? 'var(--ink-faint)' : 'var(--ink)'), boxShadow: sel ? '0 6px 16px rgba(27,24,21,0.16)' : (isT ? 'var(--shadow-xs)' : 'none'), border: isT && !sel ? '1px solid rgba(27,24,21,0.08)' : '1px solid transparent' } };
+    });
+    const selDate = this.addDays(s.weekSel);
+    const weekSelLabel = `${this.dayNames[selDate.getDay()]}${s.weekSel === 0 ? ' · today' : s.weekSel === 1 ? ' · tomorrow' : ''}`;
+
+    const peopleCards = this.people.filter(p => s.tasks.some(t => t.owner === p.id)).map(p => {
+      const all = s.tasks.filter(t => t.owner === p.id), done = all.filter(t => t.completed).length, openN = all.length - done, hi = all.filter(t => !t.completed && t.priority === 'High').length;
+      const pct = all.length ? Math.round(done / all.length * 100) : 0;
+      return { key: p.id, name: p.short, initial: p.initial, avatarStyle: this.avatarStyle(p, 34, 12), openLabel: `${openN} open${hi ? ` · ${hi} high` : ''}`, fillStyle: { height: '100%', width: `${pct}%`, borderRadius: 999, background: '#B8E0CA', transition: 'width 400ms' }, onOpen: () => this.setState({ screen: 'owner', ownerId: p.id, detailId: null }) };
+    });
+    const oh = this.person(s.ownerId); const ohOpen = s.tasks.filter(t => t.owner === s.ownerId && !t.completed).length;
+    const ownerHead = { name: oh.name, initial: oh.initial, avatarStyle: this.avatarStyle(oh, 40, 14), meta: `${ohOpen} open · ${s.tasks.filter(t => t.owner === s.ownerId && t.completed).length} completed` };
+
+    const tab = active => ({ display: 'flex', alignItems: 'center', gap: 6, padding: active ? '9px 14px' : '9px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 200ms', background: active ? 'var(--ink)' : 'transparent', color: active ? 'var(--paper)' : 'var(--ink-mute)', boxShadow: active ? '0 4px 12px rgba(27,24,21,0.18)' : 'none', position: 'relative' });
+
+    const reviewCards = reviewList.sort((a, b) => this.sortTasks(a, b)).map(t => {
+      const ui = s.review[t.id] || {}; const rp = this.reviewPill(t.review) || { label: 'Draft', style: {} };
+      const long = (t.draft || '').length > 420;
+      return {
+        key: t.id, subject: t.subject, from: t.from, action: t.action, summary: t.summary, showSummary: !!ui.summary, summaryLabel: ui.summary ? 'Hide summary' : 'Summary',
+        statusLabel: rp.label, statusStyle: { ...rp.style, fontSize: 11, padding: '4px 10px' },
+        hasFeedback: !!t.feedback, feedback: t.feedback,
+        draft: t.draft || 'No draft yet — LOLI has not proposed a response.', hasLimitation: !!t.limitation && !ui.expanded, limitation: t.limitation,
+        canExpand: long, expandLabel: ui.expanded ? 'Show less' : 'Show more',
+        draftStyle: { fontSize: 13, lineHeight: 1.55, color: 'var(--ink-soft)', whiteSpace: 'pre-wrap', maxHeight: ui.expanded || !long ? 'none' : 150, overflow: 'hidden', maskImage: ui.expanded || !long ? 'none' : 'linear-gradient(180deg,#000 60%,transparent)', WebkitMaskImage: ui.expanded || !long ? 'none' : 'linear-gradient(180deg,#000 60%,transparent)' },
+        toggleExpand: () => this.setReviewUi(t.id, { expanded: !ui.expanded }), toggleSummary: () => this.setReviewUi(t.id, { summary: !ui.summary }),
+        editing: !!ui.editing, notEditing: !ui.editing, draftEdit: ui.draftEdit ?? t.draft ?? '',
+        startEdit: () => this.setReviewUi(t.id, { editing: true, draftEdit: t.draft || '', asking: null }), cancelEdit: () => this.setReviewUi(t.id, { editing: false }),
+        onDraftEdit: e => this.setReviewUi(t.id, { draftEdit: e.target.value }),
+        saveDraft: () => { this.patch(t.id, { draft: ui.draftEdit ?? t.draft }); this.setReviewUi(t.id, { editing: false }); this.toast('Draft saved'); },
+        asking: !!ui.asking, askLabel: ui.asking === 'barbara' ? 'Hand to Barbara' : 'Send to LOLI', feedbackEdit: ui.feedbackEdit || '',
+        onFeedbackEdit: e => this.setReviewUi(t.id, { feedbackEdit: e.target.value }),
+        askChanges: () => this.setReviewUi(t.id, { asking: 'changes', editing: false }), askBarbara: () => this.setReviewUi(t.id, { asking: 'barbara', editing: false }),
+        cancelAsk: () => this.setReviewUi(t.id, { asking: null }),
+        sendChanges: () => { if (ui.asking === 'changes' && !(ui.feedbackEdit || '').trim()) { this.toast('Say what should change'); return; } this.setReview(t.id, ui.asking === 'barbara' ? 'Barbara to handle' : 'Changes requested', ui.feedbackEdit || ''); },
+        approve: () => this.setReview(t.id, 'Approved'),
+        complete: () => { this.lastAction = { type: 'complete', id: t.id }; this.patch(t.id, { completed: true }); this.toast('Completed', true); },
+        showActions: !ui.editing && !ui.asking, carlaActions: carla, barbaraActions: !carla,
+        openGmail: () => { if (t.gmail) window.open(t.gmail, '_blank'); else this.toast('No Gmail link on this item'); },
+      };
+    });
+    const reviewDone = carla ? handoff.map(t => { const rp = this.reviewPill(t.review); return { key: t.id, subject: t.subject, reviewLabel: rp.label, reviewStyle: rp.style, onOpen: () => this.openDetail(t.id) }; }) : [];
+    const q = this.focusQueue(); const fi = Math.min(s.focusIdx, Math.max(0, q.length - 1)); const ft = q[fi];
+    const focus = ft ? (() => { const fo = this.person(ft.owner); return { title: ft.action, subject: `${ft.from} — ${ft.subject}`, category: ft.category, counter: `${fi + 1} of ${q.length}`, meta: `${fo.short}${ft.priority === 'High' ? ' · High priority' : ''}`, ownerInitial: fo.initial, ownerStyle: this.avatarStyle(fo, 24, 10), fadeStyle: { display: 'flex', flexDirection: 'column', gap: 14, opacity: s.focusOut ? 0 : 1, transform: s.focusOut ? 'translateY(-10px)' : 'none', transition: 'opacity 220ms, transform 220ms' } }; })() : {};
+
+    const d = this.effectiveDraft();
+    const dueChip = { label: d.due === null || d.due === undefined ? 'No date' : this.dueLabel({ due: this.iso(this.addDays(d.due)), time: d.time }), style: this.chipStyle(d.dueParsed) };
+    const op = this.person(d.owner);
+    const ownerChip = { label: op.short, initial: op.initial, avatarStyle: this.avatarStyle(op, 18, 9), style: this.chipStyle(d.ownerParsed, '4px 12px 4px 4px') };
+    const priorityChip = { label: d.priority, style: this.chipStyle(d.prioParsed) };
+    const can = !!d.title;
+    const addBtnStyle = { padding: '12px 22px', borderRadius: 999, fontSize: 14, fontWeight: 600, cursor: can ? 'pointer' : 'default', transition: 'all 200ms', flex: 'none', background: can ? 'var(--accent)' : 'var(--linen)', color: can ? '#fff' : 'var(--ink-faint)', boxShadow: can ? '0 8px 20px rgba(242,107,58,0.3)' : 'none' };
+    const dueOpts = [0, 1, 2, 7, null];
+    let emptyTitle = 'Nothing scheduled.';
+    if (s.screen === 'today') emptyTitle = carla ? 'Inbox clear.' : 'Nothing handed off yet.';
+    if (s.screen === 'owner') emptyTitle = 'No open items.';
+
+    return {
+      sheetOpen: s.sheetOpen, isList, isToday: s.screen === 'today', isTodayTab: s.screen === 'today', isWeek: s.screen === 'week', isOwner: s.screen === 'owner', isPeople: s.screen === 'people', isPeopleTab: s.screen === 'people' || s.screen === 'owner', isReview: s.screen === 'review',
+      isDetail: !!s.detailId, isFocus: s.screen === 'focus', isDone: s.screen === 'done', loading: s.loading && isList,
+      showTabs: (isList || s.screen === 'people' || s.screen === 'review') && !s.detailId,
+      showAura: (this.props.headerAura ?? true) && s.screen === 'today',
+      todayTitle: carla ? 'Today.' : 'Handoff.', dateLine, openLine: carla ? `${open.length} open · ${high} high · ${pendingReview.length} to review` : `${open.length} to do`,
+      hasPending: s.pending.length > 0, pendingLabel: `${s.pending.length} waiting for relay`, pendingInfo: () => this.toast('Set relayUrl in Tweaks to sync with Notion'),
+      modeCarlaStyle: modeStyle(carla), modeBarbaraStyle: modeStyle(!carla), setCarla: () => this.setState({ mode: 'carla', filter: 'all' }), setBarbara: () => this.setState({ mode: 'barbara', filter: 'all' }),
+      filterChips, groups, hasGroups: rowCount > 0, rowsEmpty: !s.loading && rowCount === 0, emptyTitle, rows2, hasRows2: rows2.length > 0, rows2Label: s.screen === 'week' ? `No date · ${rows2.length}` : `Completed · ${rows2.length}`,
+      weekRange, weekDays, weekSelLabel, ownerHead, peopleLine: `${peopleCards.length} people · ${open.length} open`, peopleCards,
+      reviewTitle: carla ? 'Review.' : 'Handoff.', reviewTab: carla ? 'Review' : 'Handoff', reviewLine: carla ? `${pendingReview.length} drafts waiting for you` : `${handoff.length} approved or handed to you`,
+      reviewCards, reviewEmpty: reviewList.length === 0, reviewEmptyTitle: carla ? 'Nothing to review.' : 'Nothing handed off yet.', reviewDone, hasReviewDone: reviewDone.length > 0, reviewDoneLabel: `Decided · ${reviewDone.length}`,
+      hasReviewBadge: reviewList.length > 0 && s.screen !== 'review', reviewCount: String(reviewList.length), reviewBadgeStyle: { position: 'absolute', top: 2, right: 2, minWidth: 16, height: 16, padding: '0 4px', borderRadius: 999, background: 'var(--accent)', color: '#fff', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box' },
+      tabToday: tab(s.screen === 'today'), tabReview: tab(s.screen === 'review'), tabPeople: tab(s.screen === 'people' || s.screen === 'owner'), tabWeek: tab(s.screen === 'week'),
+      goToday: () => this.setState({ screen: 'today', detailId: null }), goWeek: () => this.setState({ screen: 'week', detailId: null }), goPeople: () => this.setState({ screen: 'people', detailId: null }), goReview: () => this.setState({ screen: 'review', detailId: null }),
+      openSheet: () => this.setState({ sheetOpen: true, draft: '', draftDue: undefined, draftOwner: null, draftPriority: undefined }), closeSheet: () => this.setState({ sheetOpen: false }),
+      startFocus: () => this.startFocus(),
+      detail: this.detailVals(), closeDetail: () => this.setState({ detailId: null }),
+      cycleOwner: () => { const t = s.tasks.find(x => x.id === s.detailId); if (t) this.patch(t.id, { owner: this.cycleIn(this.people.map(p => p.id), t.owner) }); },
+      cyclePriority: () => { const t = s.tasks.find(x => x.id === s.detailId); if (t) this.patch(t.id, { priority: this.cycleIn(['High', 'Medium', 'Low'], t.priority) }); },
+      cycleDue: () => { const t = s.tasks.find(x => x.id === s.detailId); if (t) { const cur = this.off(t); const nx = this.cycleIn(dueOpts, dueOpts.includes(cur) ? cur : 7); this.patch(t.id, { due: nx === null ? null : this.iso(this.addDays(nx)) }); } },
+      detailGmail: () => { const t = s.tasks.find(x => x.id === s.detailId); if (t && t.gmail) window.open(t.gmail, '_blank'); else this.toast('No Gmail link on this item'); },
+      snoozeLater: () => this.snooze(s.detailId, 'later', 'Moved to later today', true),
+      snoozeTomorrow: () => this.snooze(s.detailId, 1, 'Moved to tomorrow', true),
+      snoozeNextWeek: () => this.snooze(s.detailId, 7, 'Moved to next week', true),
+      detailPrimary: () => this.detailPrimary(),
+      focus, exitFocus: () => this.setState({ screen: 'today' }), focusDone: () => this.focusDone(), focusLater: () => this.focusLater(), focusSkip: () => this.focusSkip(),
+      doneSummary: `${s.tasks.filter(t => t.completed).length} items completed · ${pendingReview.length} drafts still to review.`,
+      inputRef: this.inputRef, draft: s.draft,
+      onDraft: e => this.setState({ draft: e.target.value }),
+      onDraftKey: e => { if (e.key === 'Enter') this.addTask(); if (e.key === 'Escape') this.setState({ sheetOpen: false }); },
+      dueChip, ownerChip, priorityChip,
+      cycleDraftDue: () => this.setState({ draftDue: this.cycleIn(dueOpts, dueOpts.includes(d.due) ? d.due : 7) }),
+      cycleDraftOwner: () => this.setState({ draftOwner: this.cycleIn(this.people.map(p => p.id), d.owner) }),
+      cycleDraftPriority: () => this.setState({ draftPriority: this.cycleIn(['High', 'Medium', 'Low'], d.priority) }),
+      addTask: () => this.addTask(), addBtnStyle,
+      toast: s.toast, undo: () => this.undo(),
+    };
+  }
+}
+</script>
+</body>
+</html>
