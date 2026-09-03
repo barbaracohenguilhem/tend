@@ -1,5 +1,6 @@
 import type { Settings } from '../lib/types';
 import type { Connection, Source } from '../store/useInbox';
+import { API_BASE } from '../store/useSettings';
 
 interface Props {
   settings: Settings;
@@ -24,6 +25,7 @@ function ago(ts?: number): string {
 export function SettingsSheet({ settings, source, connection, pendingCount, onUpdate, onFlush, onReload, onClose, email, onSignOut }: Props) {
   const notion = source === 'notion';
   const canSend = notion || !!settings.relayUrl;
+  const hosted = !!API_BASE && source === 'relay';
   return (
     <>
       <div className="scrim" onClick={onClose} />
@@ -51,7 +53,17 @@ export function SettingsSheet({ settings, source, connection, pendingCount, onUp
         {source === 'none' && (
           <div className="field"><label className="field-label">Notion</label><span className="field-help">{connection.message}</span></div>
         )}
-        {source === 'relay' && (
+        {hosted && (
+          <div className="field">
+            <label className="field-label">Notion</label>
+            <span className="field-help">
+              {connection.status === 'connected' && <>Connected through the tend server · updated {ago(connection.updatedAt)}.</>}
+              {connection.status === 'connecting' && 'Connecting to your Smart Inbox…'}
+              {connection.status === 'error' && connection.message}
+            </span>
+          </div>
+        )}
+        {source === 'relay' && !hosted && (
           <>
             <div className="field">
               <label className="field-label">Data URL</label>

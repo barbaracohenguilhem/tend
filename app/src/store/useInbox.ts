@@ -3,7 +3,8 @@ import type { McpError, McpNamespace, WatchEvent } from '../lib/claude';
 import { readValue, writeJson } from '../lib/storage';
 import type { Mode, RelayOp, Settings, Snapshot, Task, TaskPatch } from '../lib/types';
 import { AUTHZ_CODES, NOTION_SERVER, QUERY_INPUT, TOOL_CREATE, TOOL_QUERY, TOOL_UPDATE, createInput, describeMcpError, patchToProperties, rowToTask } from './notion';
-import { DEFAULT_DATA_URL } from './useSettings';
+import { API_BASE, DEFAULT_DATA_URL } from './useSettings';
+import { TEAM_PASSWORD, readSession } from '../lib/auth';
 
 const POLL_MS = 60_000;
 /** How long a locally applied patch keeps overriding a fresh snapshot (covers write → Notion → next poll lag). */
@@ -86,22 +87,26 @@ export function useInbox(settings: Settings, mode: Mode, notify: (text: string) 
   const headers = useCallback((json: boolean) => {
     const h: Record<string, string> = {};
     if (json) h['content-type'] = 'application/json';
-    if (settingsRef.current.relayKey) h['x-relay-key'] = settingsRef.current.relayKey;
+    const key = settingsRef.current.relayKey || (API_BASE ? TEAM_PASSWORD : '');
+    if (key) h['x-relay-key'] = key;
+    const session = readSession();
+    if (session) h['x-user'] = session.email;
     return h;
   }, []);
 
   const loadRelay = useCallback(async () => {
     const url = settingsRef.current.dataUrl || DEFAULT_DATA_URL;
-    const remote = /^https?:/i.test(url);
+    const remote = /^https?:/i.test(url) || (!!API_BASE && url.startsWith(API_BASE));
     try {
       const r = await fetch(url, { cache: 'no-store', headers: remote ? headers(false) : undefined });
-      if (!r.ok) throw new Error(String(r.status));
+      if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error((j as { error?: string }).error || String(r.status)); }
       const j = (await r.json()) as Snapshot;
       setTasks(applyLocal((j.items || []).map(normalize)));
       setConnection({ status: 'connected', updatedAt: Date.now() });
-    } catch {
-      setConnection({ status: 'error', message: 'Could not load the Smart Inbox.' });
-      notify('Could not load the Smart Inbox');
+    } catch (e) {
+      const msg = e instanceof Error && e.message && !/^\d+$/.test(e.message) ? e.message : 'Could not load the Smart Inbox.';
+      setConnection({ status: 'error', message: msg });
+      notify(msg);
     } finally {
       setLoading(false);
     }
@@ -195,8 +200,17 @@ export function useInbox(settings: Settings, mode: Mode, notify: (text: string) 
     if (source === 'relay') {
       const base = settingsRef.current.relayUrl.replace(/\/$/, '');
       if (!base) throw new Error('no relay');
-      const r = await fetch(`${base}/smart-inbox/${op.kind}`, { method: 'POST', headers: headers(true), body: JSON.stringify({ ...op, actor: modeRef.current }) });
-      if (!r.ok) throw new Error(String(r.status));
+      const current = op.kind === 'update' ? tasksRef.current.find(t => t.id === op.id) : undefined;
+      const tz = (() => { const off = -new Date().getTimezoneOffset(); const s = off >= 0 ? '+' : '-', a = Math.abs(off); return `${s}${String(Math.floor(a / 60)).padStart(2, '0')}:${String(a % 60).padStart(2, '0')}`; })();
+      const payload = op.kind === 'update' ? { ...op, id: realId(op.id), patch: { ...op.patch, tz }, current, actor: modeRef.current } : { ...op, actor: modeRef.current };
+      const r = await fetch(`${base}/smart-inbox/${op.kind}`, { method: 'POST', headers: headers(true), body: JSON.stringify(payload) });
+      const j = await r.json().catch(() => ({})) as { id?: string; error?: string };
+      if (!r.ok) throw new Error(j.error || String(r.status));
+      if (op.kind === 'create' && j.id && j.id !== op.id) {
+        idMap.current[op.id] = j.id; writeJson('idMap', idMap.current);
+        if (created.current[op.id]) created.current[op.id] = { ...created.current[op.id], id: j.id };
+        setTasks(ts => ts.map(t => (t.id === op.id ? { ...t, id: j.id as string } : t)));
+      }
       return;
     }
     throw new Error('no backend');
@@ -213,7 +227,7 @@ export function useInbox(settings: Settings, mode: Mode, notify: (text: string) 
       for (const op of pending) { await sendOp(op); sent++; }
       if (loud) notify(`Sent ${sent} change${sent === 1 ? '' : 's'} to Notion`);
     } catch (e) {
-      if (loud) notify(source === 'notion' ? describeMcpError(e as McpError) : 'Relay unreachable — changes still queued');
+      if (loud) notify(source === 'notion' ? describeMcpError(e as McpError) : `Still queued — ${e instanceof Error ? e.message : 'server unreachable'}`);
     } finally {
       flushing.current = false;
       if (sent) setPending(p => p.slice(sent));
@@ -234,7 +248,7 @@ export function useInbox(settings: Settings, mode: Mode, notify: (text: string) 
     if (pendingRef.current.length) { setPending(p => [...p, op]); return; } // keep order behind what is already queued
     sendOp(op).catch((e: McpError) => {
       setPending(p => [...p, op]);
-      notify(source === 'notion' ? `Change queued — ${describeMcpError(e)}` : 'Relay unreachable — change queued');
+      notify(source === 'notion' ? `Change queued — ${describeMcpError(e)}` : `Change queued — ${e instanceof Error && e.message ? e.message : 'server unreachable'}`);
     });
   }, [canSend, sendOp, notify, source]);
 

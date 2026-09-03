@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "build:artifact": "vite build && node scripts/build-artifact.mjs"
+    "build:artifact": "vite build && node scripts/build-artifact.mjs",
+    "icons": "node scripts/icons.mjs",
+    "vercel-build": "npm run icons && npm run build"
   },
   "dependencies": {
     "react": "^18.3.1",
