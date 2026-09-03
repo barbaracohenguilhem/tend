@@ -63,7 +63,7 @@ export default function App() {
 function InboxApp({ session, onSignOut }: { session: Session; onSignOut: () => void }) {
   const { settings, update: updateSettings } = useSettings();
   const { toast, show, hide } = useToast();
-  const [mode, setModeState] = useState<Mode>(() => readValue<Mode>('mode', 'carla'));
+  const [mode, setModeState] = useState<Mode>(() => readValue<Mode>('mode', session.email.split('@')[0].toLowerCase().startsWith('barbara') ? 'barbara' : 'carla'));
   useEffect(() => { writeJson('mode', mode); }, [mode]);
   const inbox = useInbox(settings, mode, show);
   const { tasks, patch } = inbox;
