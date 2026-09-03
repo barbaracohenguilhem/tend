@@ -119,30 +119,54 @@ export function useInbox(settings: Settings, mode: Mode, notify: (text: string) 
   }, [source, loadRelay, settings.dataUrl, settings.relayKey]);
 
   // ---- Notion backend (inside claude.ai) ------------------------------------------------
+  const pollFallback = useRef(false);
+  const applyNotionPayload = useCallback((payload: unknown, storedAt?: number) => {
+    const p = (payload || {}) as { results?: Record<string, unknown>[]; has_more?: boolean };
+    const rows = Array.isArray(p.results) ? p.results : [];
+    setTasks(applyLocal(rows.map(rowToTask)));
+    setConnection({ status: 'connected', updatedAt: storedAt ?? Date.now(), partial: !!p.has_more });
+    setLoading(false);
+  }, [applyLocal]);
+  const applyNotionError = useCallback((e: McpError) => {
+    if (AUTHZ_CODES.includes(e.code)) setTasks([]);
+    setConnection(c => ({ status: 'error', message: describeMcpError(e), updatedAt: c.updatedAt }));
+    setLoading(false);
+  }, []);
+
+  /** Plain-call polling, used when the viewer cannot register a live watch for the query tool. */
+  const pollNotion = useCallback(async () => {
+    const ns = mcp.current; if (!ns) return;
+    try {
+      const r = await ns.callTool(NOTION_SERVER, TOOL_QUERY, QUERY_INPUT, { cache: { staleTime: 20_000 } });
+      applyNotionPayload(r.payload, r.cache?.storedAt);
+    } catch (e) { applyNotionError(e as McpError); }
+    window.clearTimeout(pollTimer.current);
+    pollTimer.current = window.setTimeout(pollNotion, POLL_MS);
+  }, [applyNotionPayload, applyNotionError]);
+
   useEffect(() => {
     if (source !== 'notion' || !mcp.current) return;
     const ns = mcp.current;
+    let unsub: (() => void) | null = null;
+    const onVisible = () => { if (document.visibilityState === 'visible' && pollFallback.current) pollNotion(); };
+    document.addEventListener('visibilitychange', onVisible);
+    const startPolling = () => { if (pollFallback.current) return; pollFallback.current = true; if (unsub) { unsub(); unsub = null; } pollNotion(); };
     const onEvent = (ev: WatchEvent) => {
-      if (ev.type === 'data') {
-        const payload = (ev.result.payload || {}) as { results?: Record<string, unknown>[]; has_more?: boolean };
-        const rows = Array.isArray(payload.results) ? payload.results : [];
-        setTasks(applyLocal(rows.map(rowToTask)));
-        setConnection({ status: 'connected', updatedAt: ev.result.cache?.storedAt ?? Date.now(), partial: !!payload.has_more });
-      } else {
-        const e = ev.error;
-        if (AUTHZ_CODES.includes(e.code)) setTasks([]);
-        setConnection(c => ({ status: 'error', message: describeMcpError(e), updatedAt: c.updatedAt }));
-      }
-      setLoading(false);
+      if (ev.type === 'data') { applyNotionPayload(ev.result.payload, ev.result.cache?.storedAt); return; }
+      // A watch the shell cannot register (older shell, non-read annotation, watch limit) → fall back to polling.
+      if (ev.error.code === 'bad_request' || ev.error.code === 'internal') { startPolling(); return; }
+      applyNotionError(ev.error);
     };
-    const unsub = ns.watchTool(NOTION_SERVER, TOOL_QUERY, QUERY_INPUT, onEvent, { refetchInterval: POLL_MS, cache: { staleTime: 20_000 } });
-    return unsub;
-  }, [source, applyLocal]);
+    unsub = ns.watchTool(NOTION_SERVER, TOOL_QUERY, QUERY_INPUT, onEvent, { refetchInterval: POLL_MS, cache: { staleTime: 20_000 } });
+    return () => { if (unsub) unsub(); document.removeEventListener('visibilitychange', onVisible); window.clearTimeout(pollTimer.current); pollFallback.current = false; };
+  }, [source, applyNotionPayload, applyNotionError, pollNotion]);
 
   const reload = useCallback(() => {
-    if (source === 'notion' && mcp.current) { mcp.current.invalidate(NOTION_SERVER, TOOL_QUERY).catch(() => undefined); }
-    else if (source === 'relay') loadRelay();
-  }, [source, loadRelay]);
+    if (source === 'notion' && mcp.current) {
+      if (pollFallback.current) { mcp.current.invalidate(NOTION_SERVER, TOOL_QUERY).catch(() => undefined).then(pollNotion); }
+      else mcp.current.invalidate(NOTION_SERVER, TOOL_QUERY).catch(() => undefined);
+    } else if (source === 'relay') loadRelay();
+  }, [source, loadRelay, pollNotion]);
 
   // ---- writes ---------------------------------------------------------------------------
   const realId = (id: string) => idMap.current[id] || id;
@@ -165,7 +189,7 @@ export function useInbox(settings: Settings, mode: Mode, notify: (text: string) 
           setTasks(ts => ts.map(t => (t.id === op.id ? { ...t, id: newId } : t)));
         }
       }
-      window.setTimeout(() => ns.invalidate(NOTION_SERVER, TOOL_QUERY).catch(() => undefined), 1500);
+      window.setTimeout(() => { ns.invalidate(NOTION_SERVER, TOOL_QUERY).catch(() => undefined).then(() => { if (pollFallback.current) pollNotion(); }); }, 1500);
       return;
     }
     if (source === 'relay') {
@@ -176,7 +200,7 @@ export function useInbox(settings: Settings, mode: Mode, notify: (text: string) 
       return;
     }
     throw new Error('no backend');
-  }, [source, headers]);
+  }, [source, headers, pollNotion]);
 
   const canSend = source === 'notion' || (source === 'relay' && !!settings.relayUrl);
 
