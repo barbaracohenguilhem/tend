@@ -2,6 +2,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { z } from 'zod';
+import { fetchFresh } from './http.mjs';
 import { CATEGORIES, PRIORITIES, PROJECTS, SYSTEM } from './prompt.mjs';
 
 const MODEL = process.env.LOLI_MODEL || 'claude-opus-5';
@@ -29,7 +30,7 @@ export const Record = z.object({
 });
 
 let client = null;
-function anthropic() { if (!client) client = new Anthropic({ maxRetries: 3, timeout: 10 * 60 * 1000 }); return client; }
+function anthropic() { if (!client) client = new Anthropic({ maxRetries: 3, timeout: 10 * 60 * 1000, fetch: fetchFresh }); return client; }
 
 /** Marker of the Node process (a warm serverless container keeps it between invocations). */
 export const PROCESS = { id: Math.random().toString(36).slice(2, 8), calls: 0 };
@@ -37,7 +38,7 @@ export const PROCESS = { id: Math.random().toString(36).slice(2, 8), calls: 0 };
 /** One line describing a failure, including the network cause the Anthropic SDK wraps (ECONNRESET, ENOTFOUND, ...). */
 export function describeError(e) {
   if (!e) return String(e);
-  const parts = [e.name && e.name !== 'Error' ? e.name : null, e.status ? `HTTP ${e.status}` : null, e.message || String(e)];
+  const parts = [(e.constructor && e.constructor.name !== 'Error' ? e.constructor.name : null) || (e.name !== 'Error' ? e.name : null), e.status ? `HTTP ${e.status}` : null, e.message || String(e)];
   let c = e.cause; let depth = 0;
   while (c && depth++ < 4) { parts.push(`cause: ${c.name || ''} ${c.code || ''} ${c.errno || ''} ${c.syscall || ''} ${c.message || ''}`.replace(/\s+/g, ' ').trim()); c = c.cause; }
   return parts.filter(Boolean).join(' | ');
