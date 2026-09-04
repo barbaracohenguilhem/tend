@@ -1,0 +1,22 @@
+# Bridge for the e-mail robot while Netlify production deploys are blocked (Free-plan credits spent):
+# every 30 minutes, start a robot run on the deploy preview that carries the correct environment.
+# Scheduled functions only run on the published deploy, so the preview needs this outside trigger.
+# Repository variable LOLI_BRIDGE_URL points at the preview to use; repository secret LOLI_RUN_KEY is the
+# robot's run key (the team password when unset, as in the functions themselves). Delete this file once
+# production deploys work again — the per-minute scheduled tick takes over then.
+name: Robot bridge
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Start a robot run on the bridge deploy
+        env:
+          BASE: ${{ vars.LOLI_BRIDGE_URL || 'https://deploy-preview-8--tendys.netlify.app' }}
+          KEY: ${{ secrets.LOLI_RUN_KEY || 'APPCONTROLE' }}
+        run: |
+          curl -fsS -X POST "$BASE/.netlify/functions/loli-run-background?limit=25" -H "x-loli-key: $KEY" -o /dev/null -w 'started: HTTP %{http_code}\n'
