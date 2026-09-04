@@ -1,6 +1,7 @@
 // What the robot has been doing: last runs, cursors, cost. GET with the team password in x-loli-key (or ?key=).
 import { blobState } from '../../api/loli/state.mjs';
 import { mailboxesFromEnv } from '../../api/loli/run.mjs';
+import { route } from '../../api/loli/brain.mjs';
 import { notion } from '../../api/_lib.js';
 
 export default async function (request, context) {
@@ -14,7 +15,7 @@ export default async function (request, context) {
   const notionAccess = await notion(`data_sources/${ds}`, undefined, 'GET').then(d => `ok: ${(d.title || []).map(t => t.plain_text).join('') || ds}`).catch(e => `NO ACCESS — ${e.message}`);
   const body = {
     deploy: (context && context.deploy && context.deploy.id) || null,
-    configured: { anthropicKey: !!process.env.ANTHROPIC_API_KEY, credential: credentialShape(), notionToken: !!process.env.NOTION_TOKEN, mailboxes: mailboxes.map(m => m.user), dataSource: process.env.LOLI_DATA_SOURCE_ID || 'd8a913b6-15ad-4c9c-beff-27e4c5188336 (shadow)', model: process.env.LOLI_MODEL || 'claude-opus-5', enabled: (process.env.LOLI_ENABLED || 'true') !== 'false', notionAccess },
+    configured: { anthropicKey: !!process.env.ANTHROPIC_API_KEY, route: route(), credential: credentialShape(), notionToken: !!process.env.NOTION_TOKEN, mailboxes: mailboxes.map(m => m.user), dataSource: process.env.LOLI_DATA_SOURCE_ID || 'd8a913b6-15ad-4c9c-beff-27e4c5188336 (shadow)', model: process.env.LOLI_MODEL || 'claude-opus-5', enabled: (process.env.LOLI_ENABLED || 'true') !== 'false', notionAccess },
     lock: await state.get('lock'), cursors,
     totals: { runs: runs.length, created: runs.reduce((n, r) => n + r.mailboxes.reduce((m, x) => m + (x.created || 0), 0), 0), updated: runs.reduce((n, r) => n + r.mailboxes.reduce((m, x) => m + (x.updated || 0), 0), 0), usd: Math.round(runs.reduce((n, r) => n + (r.usd || 0), 0) * 100) / 100 },
     lastRuns: runs.slice(0, 10),

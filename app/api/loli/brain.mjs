@@ -29,11 +29,22 @@ export const Record = z.object({
   rationale: z.string().describe('One short sentence: why this category / action decision'),
 });
 
-let client = null;
-function anthropic() { if (!client) client = new Anthropic({ maxRetries: 3, timeout: 10 * 60 * 1000, fetch: fetchFresh }); return client; }
+/** Where the calls go. Netlify injects ANTHROPIC_API_KEY (a JWT) and ANTHROPIC_BASE_URL (…/.netlify/ai) for its AI Gateway
+ *  when the site has no key of its own; a real Anthropic key (sk-ant-…) always goes straight to the Anthropic API. */
+export function route(env = process.env) {
+  const key = (env.ANTHROPIC_API_KEY || '').trim();
+  const own = key.startsWith('sk-ant-');
+  const baseURL = (env.LOLI_ANTHROPIC_BASE_URL || '').trim() || (own ? 'https://api.anthropic.com' : (env.ANTHROPIC_BASE_URL || '').trim() || 'https://api.anthropic.com');
+  const gateway = /\/\.netlify\/ai\/?$/.test(baseURL);
+  return { baseURL, gateway, name: gateway ? 'Netlify AI Gateway (billed to Netlify; free plan ≈ 18k tokens/min)' : own ? 'Anthropic API (own key)' : 'Anthropic API' };
+}
 
-/** Seconds to wait before each slow retry of a call that could not connect at all (the API edge has been seen to
- *  refuse TLS handshakes for about a minute at a time; the SDK's own retries give up within 4 s). */
+let client = null;
+function anthropic() { if (!client) client = new Anthropic({ baseURL: route().baseURL, maxRetries: 3, timeout: 10 * 60 * 1000, fetch: fetchFresh }); return client; }
+
+/** Seconds to wait before each slow retry of a call the edge refused (Netlify's AI Gateway throttles by tokens per
+ *  minute and answers with a TLS alert or a bodyless 403 for the rest of the minute; the SDK's own retries give up
+ *  within 4 s). */
 export const RECONNECT_WAITS = [8, 15, 25, 40];
 const sleep = s => new Promise(r => setTimeout(r, s * 1000));
 

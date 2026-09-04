@@ -103,7 +103,11 @@ writes the row into Notion and rewrites a proposal when Carla marks it *Changes 
   INBOX messages since the last cursor (IMAP with an app password, read-only, never marks mail as read), at most 8 per run;
   then the revision loop. State (cursors, lock, run log) lives in Netlify Blobs.
 - `netlify/functions/loli-status.mjs` — `GET /.netlify/functions/loli-status?key=<team password>` shows configuration,
-  cursors, the last runs and the cost so far.
+  cursors, the last runs, the cost so far, the newest on-demand classifications and the last network probe.
+- `netlify/functions/loli-classify-background.mjs` — `POST` one e-mail as JSON (`x-loli-key`) to classify it on demand;
+  `write: true` also creates the row. Results appear in `loli-status` under `classified`.
+- `netlify/functions/loli-net-background.mjs` — network probe (`?mode=handshake` per address, or `?mode=messages` for
+  tiny real calls through the configured route); the last run appears in `loli-status` under `net`.
 - `api/loli/` — `gmail.mjs` (IMAP + parsing), `brain.mjs` (Claude, structured output, PDF/image attachments read
   directly), `notion.mjs` (rows, thread dedup, page body, meeting summaries), `run.mjs` (the pass), `state.mjs`.
 
@@ -116,11 +120,12 @@ Environment variables (Netlify → Site configuration → Environment variables)
 
 | Variable | Required | What it does |
 | --- | --- | --- |
-| `ANTHROPIC_API_KEY` | yes | Claude API key. Without it the tick does nothing. |
+| `ANTHROPIC_API_KEY` | yes | Claude API key (`sk-ant-…`, from console.anthropic.com) — calls go straight to the Anthropic API at list price. If none is set, Netlify injects its own key and `ANTHROPIC_BASE_URL` (`…/.netlify/ai`) and the calls go through the **Netlify AI Gateway**: billed to the Netlify account (1 USD of model usage = 180 credits, about 20 % over list price when credits are bought) and throttled per minute (free plan ≈ 18k tokens/min, i.e. about two e-mails a minute; the robot waits and retries when throttled). `loli-status` shows which route is in use under `configured.route`. |
 | `LOLI_GMAIL_1_USER`, `LOLI_GMAIL_1_PASS` | yes | First mailbox and its Gmail app password (2-step verification on). `_2_`, `_3_`… add more. `LOLI_MAILBOXES` (JSON `[{user,password}]`) also works. |
 | `LOLI_DATA_SOURCE_ID` | no | Where rows are written. Default: the shadow copy "Smart Inbox (teste do robô)" (`d8a913b6-15ad-4c9c-beff-27e4c5188336`). Set to `3ce2004f-2880-8038-950e-000be59b4c02` for the real Smart Inbox when switching over. |
 | `LOLI_MEETING_DATA_SOURCE_ID` | no | Meeting summaries database (default the existing one). |
 | `LOLI_MODEL`, `LOLI_EFFORT` | no | Default `claude-opus-5`, `high`. |
+| `LOLI_ANTHROPIC_BASE_URL` | no | Forces the API base URL (normally not needed: a `sk-ant-` key already goes to `https://api.anthropic.com`). |
 | `LOLI_RUN_KEY` | no | Key for the worker and status endpoints (default: the team password). |
 | `LOLI_ENABLED` | no | `false` pauses the robot without removing anything. |
 | `LOLI_SINCE` | no | ISO date for the first run's starting point. |
