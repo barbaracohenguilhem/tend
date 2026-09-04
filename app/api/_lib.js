@@ -75,8 +75,16 @@ export async function notion(path, body, method = 'POST') {
   const j = await r.json().catch(() => ({}));
   if (!r.ok) {
     let message = j.message || `Notion responded ${r.status}`;
-    if (r.status === 404 && path.startsWith('data_sources/')) message = `Notion cannot find the Smart Inbox table (data source ${DATA_SOURCE_ID}): share the database with the integration again, or set NOTION_DATA_SOURCE_ID to the right data source.`;
-    const e = new Error(message); e.status = r.status === 401 ? 503 : 502; throw e;
+    // 400 (validation) and 404 (page gone) mean this particular change can never succeed: pass them through so the phone
+    // drops it with a message instead of retrying forever and blocking everything queued behind it. Anything else — a bad
+    // token (503), rate limiting, conflicts, a Notion outage (502) — is worth retrying later.
+    let status = r.status === 400 || r.status === 404 ? r.status : r.status === 401 ? 503 : 502;
+    if (r.status === 404 && path.startsWith('data_sources/')) {
+      // The table itself is missing: a server configuration problem, not the change's fault — keep the queue waiting.
+      message = `Notion cannot find the Smart Inbox table (data source ${DATA_SOURCE_ID}): share the database with the integration again, or set NOTION_DATA_SOURCE_ID to the right data source.`;
+      status = 503;
+    }
+    const e = new Error(message); e.status = status; throw e;
   }
   return j;
 }
