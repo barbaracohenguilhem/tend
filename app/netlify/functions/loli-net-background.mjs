@@ -55,7 +55,7 @@ function handshake(ip, servername) {
   });
 }
 
-const KEEP = ['server', 'cf-ray', 'cf-cache-status', 'request-id', 'x-request-id', 'retry-after', 'x-should-retry', 'content-type', 'content-length', 'via', 'x-envoy-upstream-service-time', 'anthropic-ratelimit-requests-remaining', 'anthropic-ratelimit-requests-reset'];
+const KEEP = ['server', 'cf-ray', 'cf-cache-status', 'request-id', 'x-request-id', 'retry-after', 'x-should-retry', 'content-type', 'content-length', 'via', 'x-envoy-upstream-service-time', 'anthropic-ratelimit-requests-limit', 'anthropic-ratelimit-requests-remaining', 'anthropic-ratelimit-requests-reset', 'anthropic-ratelimit-tokens-limit', 'anthropic-ratelimit-tokens-remaining', 'anthropic-organization-id'];
 const pick = h => Object.fromEntries(Object.entries(h || {}).filter(([k]) => KEEP.includes(k)));
 
 function messages(host, model) {
@@ -63,10 +63,13 @@ function messages(host, model) {
     const started = Date.now();
     const agent = new https.Agent({ keepAlive: false, maxCachedSessions: 0 });
     const body = JSON.stringify({ model, max_tokens: 8, messages: [{ role: 'user', content: 'Say hi.' }] });
+    // Authenticate exactly like the SDK: X-Api-Key from ANTHROPIC_API_KEY and/or Bearer from ANTHROPIC_AUTH_TOKEN.
+    const apiKey = (process.env.ANTHROPIC_API_KEY || '').trim(), authToken = (process.env.ANTHROPIC_AUTH_TOKEN || '').trim();
+    const auth = { ...(apiKey ? { 'x-api-key': apiKey } : {}), ...(authToken ? { authorization: `Bearer ${authToken}` } : {}) };
     const req = https.request({ host, port: 443, path: '/v1/messages', method: 'POST', agent, timeout: 30000,
-      headers: { 'content-type': 'application/json', 'content-length': Buffer.byteLength(body), 'x-api-key': (process.env.ANTHROPIC_API_KEY || '').trim(), 'anthropic-version': '2023-06-01', 'user-agent': 'tend-loli-net-probe' } }, res => {
+      headers: { 'content-type': 'application/json', 'content-length': Buffer.byteLength(body), ...auth, 'anthropic-version': '2023-06-01', 'user-agent': 'tend-loli-net-probe' } }, res => {
       const chunks = []; res.on('data', c => chunks.push(c));
-      res.on('end', () => resolve({ ok: res.statusCode < 400, status: res.statusCode, ms: Date.now() - started, headers: pick(res.headers), body: Buffer.concat(chunks).toString('utf8').slice(0, 160) }));
+      res.on('end', () => resolve({ ok: res.statusCode < 400, status: res.statusCode, ms: Date.now() - started, auth: Object.keys(auth), headers: pick(res.headers), body: Buffer.concat(chunks).toString('utf8').slice(0, 160) }));
     });
     req.on('error', e => resolve({ ok: false, ms: Date.now() - started, error: `${e.code || ''} ${e.message}`.trim().slice(0, 300) }));
     req.on('timeout', () => { resolve({ ok: false, ms: Date.now() - started, error: 'timeout' }); req.destroy(); });
