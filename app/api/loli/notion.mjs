@@ -1,7 +1,23 @@
 // Reads and writes Smart Inbox rows for the robot through the same Notion integration the app uses.
 import { notion } from '../_lib.js';
 
-const DS = () => (process.env.LOLI_DATA_SOURCE_ID || 'd8a913b6-15ad-4c9c-beff-27e4c5188336').trim();
+const SHADOW_DS = 'd8a913b6-15ad-4c9c-beff-27e4c5188336';
+const DS = () => (process.env.LOLI_DATA_SOURCE_ID || SHADOW_DS).trim();
+
+/** The data source the robot writes to. LOLI_DATA_SOURCE_ID may hold a data source id or a database id (the
+ *  Smart Inbox page): a database is resolved to its first data source once per process. */
+let resolved = null;
+export async function dataSourceId() {
+  if (resolved) return resolved;
+  const id = DS();
+  try { await notion(`data_sources/${id}`, undefined, 'GET'); return (resolved = id); } catch (e) { if (e.status !== 404 && !/data source/i.test(e.message || '')) throw e; }
+  try {
+    const db = await notion(`databases/${id}`, undefined, 'GET');
+    const first = (db.data_sources || [])[0];
+    if (first && first.id) return (resolved = first.id);
+  } catch { /* not a database either: use the id as given and let the real call report the problem */ }
+  return (resolved = id);
+}
 const MEETING_DS = () => (process.env.LOLI_MEETING_DATA_SOURCE_ID || '362b5289-2bba-4274-ad3c-433b888d67c7').trim();
 const CHUNK = 1900;
 
@@ -28,7 +44,7 @@ export function rowSummary(page) {
 }
 
 async function query(filter, sorts, pageSize = 20) {
-  const j = await notion(`data_sources/${DS()}/query`, { page_size: pageSize, filter, sorts });
+  const j = await notion(`data_sources/${await dataSourceId()}/query`, { page_size: pageSize, filter, sorts });
   return (j.results || []).map(rowSummary);
 }
 
@@ -57,7 +73,7 @@ export function recordProperties(record, email) {
 }
 
 export async function createRow(record, email) {
-  const page = await notion('pages', { parent: { type: 'data_source_id', data_source_id: DS() }, properties: recordProperties(record, email), children: bodyBlocks(email) });
+  const page = await notion('pages', { parent: { type: 'data_source_id', data_source_id: await dataSourceId() }, properties: recordProperties(record, email), children: bodyBlocks(email) });
   return String(page.id || '').replace(/-/g, '');
 }
 
