@@ -91,3 +91,40 @@ app/
     screens/              Gate, Home, Board, Calendar, List (Today/Week/Owner), Review, Detail, Focus, Done, QuickAdd, Settings
     styles/               aura.css (design tokens), app.css
 ```
+
+## The e-mail robot
+
+The robot replaces the Notion agent ("LOLI"): it reads the studio's mailboxes, classifies every e-mail with Claude Opus 5
+following the Smart Inbox rules (`api/loli/prompt.mjs` carries the property descriptions, the roster and the house style),
+writes the row into Notion and rewrites a proposal when Carla marks it *Changes requested*. It runs on Netlify:
+
+- `netlify/functions/loli-tick.mjs` — scheduled every minute, starts the worker.
+- `netlify/functions/loli-run-background.mjs` — the worker (background function, up to 15 minutes): for each mailbox, new
+  INBOX messages since the last cursor (IMAP with an app password, read-only, never marks mail as read), at most 8 per run;
+  then the revision loop. State (cursors, lock, run log) lives in Netlify Blobs.
+- `netlify/functions/loli-status.mjs` — `GET /.netlify/functions/loli-status?key=<team password>` shows configuration,
+  cursors, the last runs and the cost so far.
+- `api/loli/` — `gmail.mjs` (IMAP + parsing), `brain.mjs` (Claude, structured output, PDF/image attachments read
+  directly), `notion.mjs` (rows, thread dedup, page body, meeting summaries), `run.mjs` (the pass), `state.mjs`.
+
+Behaviour worth knowing: a reply on a thread whose row is still open and not yet approved refreshes that row instead of
+creating a duplicate; the e-mail text is stored in the page so the revision loop can reread it; an e-mail that fails
+three runs in a row is skipped and reported in the run log; the first run starts from the beginning of the current day
+(`LOLI_SINCE` to change).
+
+Environment variables (Netlify → Site configuration → Environment variables):
+
+| Variable | Required | What it does |
+| --- | --- | --- |
+| `ANTHROPIC_API_KEY` | yes | Claude API key. Without it the tick does nothing. |
+| `LOLI_GMAIL_1_USER`, `LOLI_GMAIL_1_PASS` | yes | First mailbox and its Gmail app password (2-step verification on). `_2_`, `_3_`… add more. `LOLI_MAILBOXES` (JSON `[{user,password}]`) also works. |
+| `LOLI_DATA_SOURCE_ID` | no | Where rows are written. Default: the shadow copy "Smart Inbox (teste do robô)" (`d8a913b6-15ad-4c9c-beff-27e4c5188336`). Set to `3ce2004f-2880-8038-950e-000be59b4c02` for the real Smart Inbox when switching over. |
+| `LOLI_MEETING_DATA_SOURCE_ID` | no | Meeting summaries database (default the existing one). |
+| `LOLI_MODEL`, `LOLI_EFFORT` | no | Default `claude-opus-5`, `high`. |
+| `LOLI_RUN_KEY` | no | Key for the worker and status endpoints (default: the team password). |
+| `LOLI_ENABLED` | no | `false` pauses the robot without removing anything. |
+| `LOLI_SINCE` | no | ISO date for the first run's starting point. |
+
+Switching over from LOLI: run in shadow (default) against the copy, compare with LOLI's rows, then set
+`LOLI_DATA_SOURCE_ID` to the real Smart Inbox and pause the two Notion agents ("Classificador Gmail → Notion").
+The Notion integration must be connected to whichever database the robot writes to.

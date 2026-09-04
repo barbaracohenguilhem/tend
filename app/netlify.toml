@@ -7,3 +7,13 @@
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
+
+# The e-mail robot (see app/README.md → "The e-mail robot"): a tick every minute starts the background worker.
+[functions."loli-tick"]
+  schedule = "* * * * *"
+
+[functions."loli-run-background"]
+  external_node_modules = ["imapflow", "mailparser"]
+
+[functions."loli-status"]
+  external_node_modules = ["imapflow", "mailparser"]
