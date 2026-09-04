@@ -37,12 +37,19 @@ function anthropic() { if (!client) client = new Anthropic({ maxRetries: 3, time
 export const RECONNECT_WAITS = [8, 15, 25, 40];
 const sleep = s => new Promise(r => setTimeout(r, s * 1000));
 
-/** Run one SDK call; on APIConnectionError (not a timeout, not an API answer) wait and try again, up to RECONNECT_WAITS. */
+/** An edge rejection: could not connect at all, or the edge answered 403 with no body (a real permission
+ *  error from the API carries a JSON body and a message). Neither is a verdict on the request itself. */
+export function isEdgeRejection(e) {
+  if (e instanceof Anthropic.APIConnectionTimeoutError) return false;
+  if (e instanceof Anthropic.APIConnectionError) return true;
+  return e instanceof Anthropic.APIError && e.status === 403 && /no body/i.test(e.message || '');
+}
+
+/** Run one SDK call; on an edge rejection wait and try again, up to RECONNECT_WAITS. */
 export async function withReconnect(call, { waits = RECONNECT_WAITS, log = () => {} } = {}) {
   for (let attempt = 0; ; attempt++) {
     try { return await call(); } catch (e) {
-      const connection = e instanceof Anthropic.APIConnectionError && !(e instanceof Anthropic.APIConnectionTimeoutError);
-      if (!connection || attempt >= waits.length) throw e;
+      if (!isEdgeRejection(e) || attempt >= waits.length) throw e;
       log(`loli: connection failed (${describeError(e)}); retrying in ${waits[attempt]} s`);
       await sleep(waits[attempt]);
     }
