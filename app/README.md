@@ -130,6 +130,12 @@ Environment variables (Netlify → Site configuration → Environment variables)
 | `LOLI_ENABLED` | no | `false` pauses the robot without removing anything. |
 | `LOLI_SINCE` | no | ISO date for the first run's starting point. |
 
+Netlify plan limits worth knowing (Free plan, credit-based): 300 credits a month, a production deploy costs 15, and
+the cap is hard — once it is spent no deploy (production or preview) goes out until the next monthly cycle or an
+upgrade. Every merge to `main` is a production deploy, so batch small changes into one PR instead of merging several a
+day; environment-variable changes also need a deploy to reach the functions. If deploys are blocked, the robot keeps
+running on the last published deploy with the variables that deploy was built with.
+
 Switching over from LOLI: run in shadow (default) against the copy, compare with LOLI's rows, then set
 `LOLI_DATA_SOURCE_ID` to the real Smart Inbox and pause the two Notion agents ("Classificador Gmail → Notion").
 The Notion integration must be connected to whichever database the robot writes to.
