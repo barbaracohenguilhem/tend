@@ -32,6 +32,23 @@ export const Record = z.object({
 let client = null;
 function anthropic() { if (!client) client = new Anthropic({ maxRetries: 3, timeout: 10 * 60 * 1000, fetch: fetchFresh }); return client; }
 
+/** Seconds to wait before each slow retry of a call that could not connect at all (the API edge has been seen to
+ *  refuse TLS handshakes for about a minute at a time; the SDK's own retries give up within 4 s). */
+export const RECONNECT_WAITS = [8, 15, 25, 40];
+const sleep = s => new Promise(r => setTimeout(r, s * 1000));
+
+/** Run one SDK call; on APIConnectionError (not a timeout, not an API answer) wait and try again, up to RECONNECT_WAITS. */
+export async function withReconnect(call, { waits = RECONNECT_WAITS, log = () => {} } = {}) {
+  for (let attempt = 0; ; attempt++) {
+    try { return await call(); } catch (e) {
+      const connection = e instanceof Anthropic.APIConnectionError && !(e instanceof Anthropic.APIConnectionTimeoutError);
+      if (!connection || attempt >= waits.length) throw e;
+      log(`loli: connection failed (${describeError(e)}); retrying in ${waits[attempt]} s`);
+      await sleep(waits[attempt]);
+    }
+  }
+}
+
 /** Marker of the Node process (a warm serverless container keeps it between invocations). */
 export const PROCESS = { id: Math.random().toString(36).slice(2, 8), calls: 0 };
 
@@ -81,12 +98,12 @@ export async function classify(email, thread = []) {
     ...blocks,
     { type: 'text', text: `${emailText(email, thread)}\n\n## Attachments\n${listed.length ? listed.join('\n') : 'none'}${blocks.length ? '\n(the PDF/image attachments above are attached for you to read)' : ''}\n\nProduce the Smart Inbox record for this e-mail.` },
   ];
-  const r = await anthropic().messages.parse({
+  const r = await withReconnect(() => anthropic().messages.parse({
     model: MODEL, max_tokens: 8000,
     output_config: { effort: EFFORT, format: zodOutputFormat(Record) },
     system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }],
     messages: [{ role: 'user', content }],
-  });
+  }), { log: console.log });
   if (r.stop_reason === 'refusal') throw new Error('Claude declined this e-mail (refusal)');
   const record = r.parsed_output;
   if (!record) throw new Error('Claude returned no structured record');
@@ -95,12 +112,12 @@ export async function classify(email, thread = []) {
 
 /** Rewrite a proposal after Carla asked for changes. Returns { record, usage }. */
 export async function revise({ emailBody, subject, previousDraft, previousNextAction, feedback, thread = [] }) {
-  const r = await anthropic().messages.parse({
+  const r = await withReconnect(() => anthropic().messages.parse({
     model: MODEL, max_tokens: 8000,
     output_config: { effort: EFFORT, format: zodOutputFormat(Record) },
     system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }],
     messages: [{ role: 'user', content: `## E-mail (as registered)\nSubject: ${subject}\n\n${emailBody || '(texto não disponível)'}\n\n## Previous proposal\nNext action: ${previousNextAction || ''}\n\n${previousDraft || ''}\n\n## Carla's feedback ("Changes requested")\n${feedback}\n\nRevise the record so the proposal answers Carla's feedback exactly. Keep everything she did not object to. Produce the full Smart Inbox record again.` }],
-  });
+  }), { log: console.log });
   if (r.stop_reason === 'refusal') throw new Error('Claude declined this revision (refusal)');
   if (!r.parsed_output) throw new Error('Claude returned no structured record');
   return { record: normalize(r.parsed_output), usage: r.usage, model: r.model };
