@@ -1,3 +1,4 @@
+import { taskTitle } from '../lib/title';
 import { useState } from 'react';
 import { Avatar } from '../components/Avatar';
 import { Chat } from '../components/Chat';
@@ -69,7 +70,7 @@ export function DetailScreen(props: Props) {
   const sendAsk = () => { const text = ask.trim(); if (!text) { notify('Write what you want Carla to confirm'); return; } onAskCarla(askLinks.length ? `${text}\n\nLinks:\n${askLinks.join('\n')}` : text); setAsking(false); setAsk(''); setAskLinks([]); };
   const addLink = () => { const v = askLink.trim(); if (!v) return; setAskLinks(l => [...l, /^https?:\/\//i.test(v) ? v : 'https://' + v]); setAskLink(''); };
   const submitSub = () => { if (!sub.title.trim()) { notify('Give the subtask a title'); return; } onAddSubtask({ ...sub, title: sub.title.trim(), ownerName: external.trim() || null, owner: external.trim() ? 'none' : sub.owner }); setAddingSub(false); setSub({ ...sub, title: '' }); setExternal(''); };
-  const depCandidates = depSearch.trim().length < 2 ? [] : all.filter(x => x.id !== t.id && !x.completed && !(t.dependsOn || []).includes(x.id) && (x.action + ' ' + x.subject).toLowerCase().includes(depSearch.toLowerCase())).slice(0, 6);
+  const depCandidates = depSearch.trim().length < 2 ? [] : all.filter(x => x.id !== t.id && !x.completed && !(t.dependsOn || []).includes(x.id) && (taskTitle(x) + ' ' + x.action + ' ' + x.subject).toLowerCase().includes(depSearch.toLowerCase())).slice(0, 6);
 
   return (
     <div className="detail">
@@ -79,8 +80,9 @@ export function DetailScreen(props: Props) {
         <div className="spacer-40" />
       </div>
       <div className="detail-scroll scroll">
-        {parent && <div className="parent-link" onClick={() => onOpen(parent.id)}>Part of: <b>{parent.action}</b></div>}
-        <h1 className="detail-title">{t.action}</h1>
+        {parent && <div className="parent-link" onClick={() => onOpen(parent.id)}>Part of: <b>{taskTitle(parent)}</b></div>}
+        <h1 className="detail-title">{taskTitle(t)}</h1>
+        {t.title && t.action !== taskTitle(t) && <div className="detail-action">{t.action}</div>}
         {t.subject !== t.action && <div className="detail-subject">{t.subject}</div>}
         <div className="detail-tags"><TaskTags task={t} all={all} /></div>
 
@@ -139,7 +141,7 @@ export function DetailScreen(props: Props) {
           {subtasks.map(s => (
             <div key={s.id} className={`struct-row${s.completed ? ' is-done' : ''}`} onClick={() => onOpen(s.id)}>
               <span className={`check mini${s.completed ? ' is-checked' : ''}`} />
-              <span className="struct-title">{s.action}</span>
+              <span className="struct-title">{taskTitle(s)}</span>
               <span className="struct-who">{s.owner === 'none' ? (s.ownerName || '') : person(s.owner).short}</span>
             </div>
           ))}
@@ -166,7 +168,7 @@ export function DetailScreen(props: Props) {
           {deps.map(d => (
             <div key={d.id} className={`struct-row${d.completed ? ' is-done' : ''}`}>
               <span className={`check mini${d.completed ? ' is-checked' : ''}`} onClick={() => onOpen(d.id)} />
-              <span className="struct-title" onClick={() => onOpen(d.id)}>{d.action}</span>
+              <span className="struct-title" onClick={() => onOpen(d.id)}>{taskTitle(d)}</span>
               {canStructure && <span className="struct-x" onClick={() => onPatch({ dependsOn: (t.dependsOn || []).filter(x => x !== d.id) })}>×</span>}
             </div>
           ))}
@@ -178,7 +180,7 @@ export function DetailScreen(props: Props) {
             <div className="struct-form">
               <span className="field-label">Another task</span>
               <input className="field-input" placeholder="Search open tasks…" value={depSearch} onChange={e => setDepSearch(e.target.value)} />
-              {depCandidates.map(c => <div key={c.id} className="struct-row" onClick={() => { onPatch({ dependsOn: [...(t.dependsOn || []), c.id] }); setDepSearch(''); setAddingDep(false); }}><span className="check mini" /><span className="struct-title">{c.action}</span><span className="struct-who">{c.owner === 'none' ? '' : person(c.owner).short}</span></div>)}
+              {depCandidates.map(c => <div key={c.id} className="struct-row" onClick={() => { onPatch({ dependsOn: [...(t.dependsOn || []), c.id] }); setDepSearch(''); setAddingDep(false); }}><span className="check mini" /><span className="struct-title">{taskTitle(c)}</span><span className="struct-who">{c.owner === 'none' ? '' : person(c.owner).short}</span></div>)}
               <span className="field-label">Or something outside the app</span>
               <input className="field-input" placeholder="e.g. Fulana's answer about the flight" value={waiting} onChange={e => setWaiting(e.target.value)} />
               <div className="btn-row"><div className="btn btn-ink" onClick={() => { onPatch({ waitingOn: waiting.trim() || null }); setAddingDep(false); }}>Save</div><div className="btn btn-white" onClick={() => setAddingDep(false)}>Cancel</div></div>

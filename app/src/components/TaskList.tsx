@@ -1,3 +1,4 @@
+import { taskTitle } from '../lib/title';
 import { useEffect, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
 import { catColor, person } from '../lib/people';
 import { dayOffset, dueLabel } from '../lib/dates';
@@ -121,7 +122,7 @@ export function TaskList({ groups, anim, onComplete, onSnooze, onOpen, onReorder
                           {checked && <CheckIcon />}
                         </div>
                         <div className="row-body">
-                          <div className="row-title">{t.action}</div>
+                          <div className="row-title">{taskTitle(t)}</div>
                           <div className="row-meta">
                             <span className="dot" style={{ background: catColor(t.category) }} />
                             <span className="row-meta-text">{t.from}{t.project && t.project !== 'Sem projeto' ? ' · ' + t.project : ''}</span>
@@ -154,7 +155,7 @@ export function SecondaryRow({ task, onOpen, onToggle }: { task: Task; onOpen: (
         {task.completed && <CheckIcon />}
       </div>
       <div className="row2-body">
-        <div className={`row2-title${task.completed ? ' is-done' : ''}`}>{task.action}</div>
+        <div className={`row2-title${task.completed ? ' is-done' : ''}`}>{taskTitle(task)}</div>
         <div className="row2-meta">
           <span className="dot" style={{ background: catColor(task.category) }} />
           <span className="row2-meta-text">{task.from}{d !== null ? ' · ' + dueLabel(task) : ''}</span>

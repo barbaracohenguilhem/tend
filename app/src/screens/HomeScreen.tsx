@@ -1,3 +1,4 @@
+import { taskTitle } from '../lib/title';
 import { Avatar } from '../components/Avatar';
 import { Logo } from '../components/Logo';
 import { TaskTags } from '../components/TaskTags';
@@ -101,7 +102,7 @@ export function HomeScreen({ role, name, myOwner, tasks, loading, error, onRetry
               return (
                 <div key={t.id} className={`home-card${s.struck ? ' is-struck' : ''}${s.light ? ' is-light' : ''}`} onClick={() => onOpen(t.id)}>
                   <div className="home-card-top"><span className="home-from">{t.from}{t.project && t.project !== 'Sem projeto' ? ` · ${t.project}` : ''}</span><Avatar person={o} size={20} fs={9} /></div>
-                  <div className="home-card-title">{t.action}</div>
+                  <div className="home-card-title">{taskTitle(t)}</div>
                   {s.key === 'asks' && t.reviewRequest && <div className="home-ask"><b>{t.requestedBy || o.short}:</b> {t.reviewRequest.split('\n')[0]}</div>}
                   {t.feedback && s.key === 'rejected' && <div className="home-reason">“{t.feedback}”</div>}
                   {!s.light && t.summary && s.key !== 'asks' && <div className="home-context">{t.summary}</div>}

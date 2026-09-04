@@ -1,3 +1,4 @@
+import { taskTitle } from '../lib/title';
 import { useState } from 'react';
 import { Avatar } from '../components/Avatar';
 import { Logo } from '../components/Logo';
@@ -88,7 +89,7 @@ function DayRow({ t, onOpen }: { t: Task; onOpen: (id: string) => void }) {
   return (
     <div className="home-card" onClick={() => onOpen(t.id)}>
       <div className="home-card-top"><span className="home-from">{t.from}{t.time ? ` · ${t.time}` : ''}</span><Avatar person={o} size={20} fs={9} /></div>
-      <div className="home-card-title">{t.action}</div>
+      <div className="home-card-title">{taskTitle(t)}</div>
       <TaskTags task={t} compact />
     </div>
   );
