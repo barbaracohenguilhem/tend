@@ -64,7 +64,7 @@ function messages(host, model) {
     const agent = new https.Agent({ keepAlive: false, maxCachedSessions: 0 });
     const body = JSON.stringify({ model, max_tokens: 8, messages: [{ role: 'user', content: 'Say hi.' }] });
     const req = https.request({ host, port: 443, path: '/v1/messages', method: 'POST', agent, timeout: 30000,
-      headers: { 'content-type': 'application/json', 'content-length': Buffer.byteLength(body), 'x-api-key': process.env.ANTHROPIC_API_KEY || '', 'anthropic-version': '2023-06-01', 'user-agent': 'tend-loli-net-probe' } }, res => {
+      headers: { 'content-type': 'application/json', 'content-length': Buffer.byteLength(body), 'x-api-key': (process.env.ANTHROPIC_API_KEY || '').trim(), 'anthropic-version': '2023-06-01', 'user-agent': 'tend-loli-net-probe' } }, res => {
       const chunks = []; res.on('data', c => chunks.push(c));
       res.on('end', () => resolve({ ok: res.statusCode < 400, status: res.statusCode, ms: Date.now() - started, headers: pick(res.headers), body: Buffer.concat(chunks).toString('utf8').slice(0, 160) }));
     });
