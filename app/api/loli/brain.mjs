@@ -31,6 +31,18 @@ export const Record = z.object({
 let client = null;
 function anthropic() { if (!client) client = new Anthropic({ maxRetries: 3, timeout: 10 * 60 * 1000 }); return client; }
 
+/** Marker of the Node process (a warm serverless container keeps it between invocations). */
+export const PROCESS = { id: Math.random().toString(36).slice(2, 8), calls: 0 };
+
+/** One line describing a failure, including the network cause the Anthropic SDK wraps (ECONNRESET, ENOTFOUND, ...). */
+export function describeError(e) {
+  if (!e) return String(e);
+  const parts = [e.name && e.name !== 'Error' ? e.name : null, e.status ? `HTTP ${e.status}` : null, e.message || String(e)];
+  let c = e.cause; let depth = 0;
+  while (c && depth++ < 4) { parts.push(`cause: ${c.name || ''} ${c.code || ''} ${c.errno || ''} ${c.syscall || ''} ${c.message || ''}`.replace(/\s+/g, ' ').trim()); c = c.cause; }
+  return parts.filter(Boolean).join(' | ');
+}
+
 /** Attachments Claude can read directly: PDFs as documents, images as images. Everything else is listed by name. */
 function attachmentBlocks(attachments) {
   const blocks = []; const listed = []; let bytes = 0;
@@ -62,6 +74,7 @@ export function emailText(email, thread) {
 
 /** Classify one e-mail. Returns { record, usage, model }. */
 export async function classify(email, thread = []) {
+  PROCESS.calls++;
   const { blocks, listed } = attachmentBlocks(email.attachments);
   const content = [
     ...blocks,

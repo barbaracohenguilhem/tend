@@ -1,6 +1,6 @@
 // One pass of the robot: new e-mails from every mailbox → Smart Inbox rows; then Carla's "Changes requested" → revised proposals.
 import { fetchNewEmails } from './gmail.mjs';
-import { classify, revise } from './brain.mjs';
+import { classify, describeError, revise } from './brain.mjs';
 import { createMeetingSummary, createRow, findByMessageId, findThread, listChangesRequested, readPageText, updateRow } from './notion.mjs';
 
 const LOCK_MS = 12 * 60 * 1000;
@@ -47,13 +47,13 @@ export async function runOnce({ state, mailboxes = mailboxesFromEnv(), fetch = f
             const failures = ((await state.get(failKey)) || 0) + 1;
             await state.set(failKey, failures);
             mbReport.failed++;
-            report.errors.push(`${mb.user} uid ${email.uid} (${email.subject.slice(0, 60)}): ${e.message}`);
-            log('loli: e-mail failed', mb.user, email.uid, e.message);
+            report.errors.push(`${mb.user} uid ${email.uid} (${email.subject.slice(0, 60)}): ${describeError(e)}`);
+            log('loli: e-mail failed', mb.user, email.uid, describeError(e));
             if (failures >= MAX_FAILURES) { await state.set(`cursor:${mb.user}`, { uid: email.uid, at: Date.now() }); report.errors.push(`${mb.user} uid ${email.uid}: skipped after ${failures} failures`); continue; }
             break; // retry this one on the next run, keep order
           }
         }
-      } catch (e) { mbReport.error = e.message; report.errors.push(`${mb.user}: ${e.message}`); log('loli: mailbox failed', mb.user, e.message); }
+      } catch (e) { mbReport.error = describeError(e); report.errors.push(`${mb.user}: ${mbReport.error}`); log('loli: mailbox failed', mb.user, mbReport.error); }
     }
     // Revisions: Carla asked for changes on a row the robot wrote.
     try {
@@ -66,9 +66,9 @@ export async function runOnce({ state, mailboxes = mailboxesFromEnv(), fetch = f
           report.usd += cost(usage);
           await db.updateRow(row.id, { ...record, action_required: true }, null);
           report.revisions.push({ id: row.id, subject: row.subject });
-        } catch (e) { report.errors.push(`revision ${row.id}: ${e.message}`); }
+        } catch (e) { report.errors.push(`revision ${row.id}: ${describeError(e)}`); }
       }
-    } catch (e) { report.errors.push(`revisions: ${e.message}`); }
+    } catch (e) { report.errors.push(`revisions: ${describeError(e)}`); }
   } finally {
     await state.set('lock', null);
     report.finishedAt = new Date().toISOString();
