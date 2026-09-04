@@ -17,6 +17,7 @@ Environment variables (Netlify → Site configuration → Environment variables)
 | Variable | Required | What it does |
 | --- | --- | --- |
 | `NOTION_TOKEN` | yes | Internal integration token with access to the Smart Inbox database. |
+| `NOTION_DATA_SOURCE_ID` | no | The Smart Inbox *data source* (table) inside the Notion database (default `3ce2004f-2880-8038-950e-000be59b4c02`). A Notion database can hold several tables; the API always reads and writes this one, so another table added to the database cannot break the app. |
 | `TEAM_PASSWORD` | no | The shared password (default `APPCONTROLE`). The sign-in screen asks the server, so changing it here is enough; update the hint in `src/lib/auth.ts` when you do. |
 | `ALLOWED_DOMAIN` | no | Email domain allowed to sign in (default `carlaguilhem.com`). |
 
@@ -46,6 +47,10 @@ Undo of a quick-add archives the Notion page if it was already created. A small 
 the app shell available offline; `/api` is never cached.
 
 Due dates with a time are stored in Notion with an offset and shown in the phone's own time zone.
+
+The server speaks Notion API version `2025-09-03` and addresses the Smart Inbox *data source* directly
+(`api/_lib.js`). Older versions query the database as a whole and stop working ("this database has multiple data
+sources") the moment a second table is added to it in Notion — which is what took the app down on 3 Sept 2026.
 
 ## Run it locally
 
