@@ -1,16 +1,14 @@
 // Shared helpers for the tend serverless API (Vercel Node functions).
 // Talks to the Notion REST API with a server-side integration token; the phone never sees it.
 
-/** The Notion database — the container. Day-to-day calls go to the data source below, never to the database. */
-export const DATABASE_ID = '3ce2004f28808045a662d5b0314775dc';
 /**
- * The Smart Inbox table inside that database. Since Notion API 2025-09-03 a database is a container that can hold
- * several data sources (tables), and the legacy `databases/{id}` query / read / create-page calls fail as soon as it
- * holds more than one — which is exactly what happened when an empty "New data source" appeared next to the Smart Inbox.
- * Every read, write and page creation names this data source explicitly, so extra tables can no longer break the app.
- * Override with NOTION_DATA_SOURCE_ID if the Smart Inbox ever moves to another data source.
+ * The Smart Inbox table inside the Notion database 3ce2004f28808045a662d5b0314775dc. Since Notion API 2025-09-03 a
+ * database is a container that can hold several data sources (tables), and the legacy `databases/{id}` query / read /
+ * create-page calls fail as soon as it holds more than one — which is exactly what happened when an empty "New data
+ * source" appeared next to the Smart Inbox. Every read, write and page creation names this data source explicitly, so
+ * extra tables can no longer break the app. Override with NOTION_DATA_SOURCE_ID if the Smart Inbox ever moves.
  */
-export const DATA_SOURCE_ID = (process.env.NOTION_DATA_SOURCE_ID || '3ce2004f-2880-8038-950e-000be59b4c02').trim();
+export const DATA_SOURCE_ID = (process.env.NOTION_DATA_SOURCE_ID || '').trim() || '3ce2004f-2880-8038-950e-000be59b4c02';
 const NOTION_API = process.env.NOTION_API_BASE || 'https://api.notion.com';
 /** Data-source aware API version (https://developers.notion.com/docs/upgrade-guide-2025-09-03). */
 const NOTION_VERSION = '2025-09-03';
