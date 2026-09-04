@@ -5,6 +5,17 @@ import { createMeetingSummary, createRow, findByMessageId, findThread, listChang
 
 const LOCK_MS = 12 * 60 * 1000;
 const MAX_FAILURES = 3;
+const MAX_FAILING_MS = 2 * 60 * 60 * 1000;
+
+/** Is this failure about the e-mail itself (a bad request for its content, a refusal, no usable record, a Notion
+ *  validation error)? Only those count towards skipping it. Anything else — a malformed credential (TypeError while
+ *  building the request), an authentication or permission answer, a connection that never came up, an outage — is
+ *  about the setup or the moment, and counting it would skip the whole backlog three minutes at a time. */
+export function isEmailSpecific(e) {
+  if (!e || e instanceof TypeError) return false;
+  if (e.status === 400 || e.status === 413 || e.status === 422) return true;
+  return /refusal|declined|no structured record|validation_error/i.test(e.message || '');
+}
 
 /** Mailboxes from the environment: LOLI_GMAIL_1_USER / LOLI_GMAIL_1_PASS … or LOLI_MAILBOXES as JSON. */
 export function mailboxesFromEnv(env = process.env) {
@@ -44,13 +55,19 @@ export async function runOnce({ state, mailboxes = mailboxesFromEnv(), fetch = f
             mbReport[outcome]++;
             await state.set(`cursor:${mb.user}`, { uid: email.uid, at: Date.now() });
           } catch (e) {
-            const failures = ((await state.get(failKey)) || 0) + 1;
-            await state.set(failKey, failures);
+            const prev = (await state.get(failKey)) || null;
+            const fail = { count: (prev && prev.count || 0) + (isEmailSpecific(e) ? 1 : 0), firstAt: (prev && prev.firstAt) || Date.now() };
+            await state.set(failKey, fail);
             mbReport.failed++;
             report.errors.push(`${mb.user} uid ${email.uid} (${email.subject.slice(0, 60)}): ${describeError(e)}`);
             log('loli: e-mail failed', mb.user, email.uid, describeError(e));
-            if (failures >= MAX_FAILURES) { await state.set(`cursor:${mb.user}`, { uid: email.uid, at: Date.now() }); report.errors.push(`${mb.user} uid ${email.uid}: skipped after ${failures} failures`); continue; }
-            break; // retry this one on the next run, keep order
+            const stuck = Date.now() - fail.firstAt > MAX_FAILING_MS;
+            if (fail.count >= MAX_FAILURES || stuck) {
+              await state.set(`cursor:${mb.user}`, { uid: email.uid, at: Date.now() });
+              report.errors.push(`${mb.user} uid ${email.uid}: skipped ${stuck ? 'after failing for more than two hours' : `after ${fail.count} failures`}`);
+              continue;
+            }
+            break; // retry this one on the next run, keep order; a setup problem holds the cursor without counting
           }
         }
       } catch (e) { mbReport.error = describeError(e); report.errors.push(`${mb.user}: ${mbReport.error}`); log('loli: mailbox failed', mb.user, mbReport.error); }
