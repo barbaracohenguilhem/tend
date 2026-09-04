@@ -1,5 +1,5 @@
 // Platform-neutral request handling for the tend API. Vercel (api/) and Netlify (netlify/functions/) both wrap this.
-import { DATABASE_ID, DEACTIVATED, addComment, appendFile, createProperties, listComments, notion, pageToItem, patchToProperties, uploadFile, userFor } from './_lib.js';
+import { DATA_SOURCE_ID, DEACTIVATED, addComment, appendFile, createProperties, listComments, notion, pageToItem, patchToProperties, uploadFile, userFor } from './_lib.js';
 
 const ROUTES = ['/', '/update', '/create', '/comments', '/upload', '/meta'];
 const OPEN = { and: [{ property: 'Action required', checkbox: { equals: true } }, { property: 'Completed', checkbox: { equals: false } }] };
@@ -25,9 +25,10 @@ export async function handle({ method, path, headers, body, query, raw }) {
   const route = path.replace(/\/+$/, '').replace(/^.*\/api\/smart-inbox/, '') || '/';
   try {
     if (route === '/' && method === 'GET') {
+      // Query the Smart Inbox data source itself, not its database: the database may hold other tables.
       const items = []; let cursor;
       for (let page = 0; page < 6; page++) {
-        const j = await notion(`databases/${DATABASE_ID}/query`, {
+        const j = await notion(`data_sources/${DATA_SOURCE_ID}/query`, {
           page_size: 100, start_cursor: cursor,
           filter: { or: [OPEN, RECENTLY_DONE] },
           sorts: [{ property: 'Priority', direction: 'ascending' }, { property: 'Due date', direction: 'ascending' }],
@@ -39,7 +40,7 @@ export async function handle({ method, path, headers, body, query, raw }) {
       return { status: 200, body: { fetchedAt: new Date().toISOString(), items, you: { role: user.role, owner: user.owner, name: user.name } } };
     }
     if (route === '/meta' && method === 'GET') {
-      const db = await notion(`databases/${DATABASE_ID}`, undefined, 'GET');
+      const db = await notion(`data_sources/${DATA_SOURCE_ID}`, undefined, 'GET');
       const options = name => ((db.properties?.[name]?.select?.options) || []).map(o => o.name);
       return { status: 200, body: { projects: options('Project'), categories: options('Category'), you: { role: user.role, owner: user.owner, name: user.name } } };
     }
@@ -93,7 +94,7 @@ export async function handle({ method, path, headers, body, query, raw }) {
       const op = { ...body };
       // A team member creates in their own name unless it is a subtask they hand to a teammate.
       if (scoped && !op.parentId) { op.owner = user.owner || 'none'; op.ownerName = null; }
-      const page = await notion('pages', { parent: { database_id: DATABASE_ID }, properties: createProperties(op, user.name) });
+      const page = await notion('pages', { parent: { type: 'data_source_id', data_source_id: DATA_SOURCE_ID }, properties: createProperties(op, user.name) });
       return { status: 200, body: { id: String(page.id || '').replace(/-/g, '') } };
     }
     return { status: ROUTES.includes(route) ? 405 : 404, body: { error: 'Not found' } };

@@ -1,9 +1,19 @@
 // Shared helpers for the tend serverless API (Vercel Node functions).
 // Talks to the Notion REST API with a server-side integration token; the phone never sees it.
 
+/** The Notion database — the container. Day-to-day calls go to the data source below, never to the database. */
 export const DATABASE_ID = '3ce2004f28808045a662d5b0314775dc';
+/**
+ * The Smart Inbox table inside that database. Since Notion API 2025-09-03 a database is a container that can hold
+ * several data sources (tables), and the legacy `databases/{id}` query / read / create-page calls fail as soon as it
+ * holds more than one — which is exactly what happened when an empty "New data source" appeared next to the Smart Inbox.
+ * Every read, write and page creation names this data source explicitly, so extra tables can no longer break the app.
+ * Override with NOTION_DATA_SOURCE_ID if the Smart Inbox ever moves to another data source.
+ */
+export const DATA_SOURCE_ID = (process.env.NOTION_DATA_SOURCE_ID || '3ce2004f-2880-8038-950e-000be59b4c02').trim();
 const NOTION_API = process.env.NOTION_API_BASE || 'https://api.notion.com';
-const NOTION_VERSION = '2022-06-28';
+/** Data-source aware API version (https://developers.notion.com/docs/upgrade-guide-2025-09-03). */
+const NOTION_VERSION = '2025-09-03';
 
 const PEOPLE = [
   { id: 'carla', name: 'Carla Guilhem', keys: ['carla'] },
@@ -65,7 +75,11 @@ export async function notion(path, body, method = 'POST') {
     body: body ? JSON.stringify(body) : undefined,
   });
   const j = await r.json().catch(() => ({}));
-  if (!r.ok) { const e = new Error(j.message || `Notion responded ${r.status}`); e.status = r.status === 401 ? 503 : 502; throw e; }
+  if (!r.ok) {
+    let message = j.message || `Notion responded ${r.status}`;
+    if (r.status === 404 && path.startsWith('data_sources/')) message = `Notion cannot find the Smart Inbox table (data source ${DATA_SOURCE_ID}): share the database with the integration again, or set NOTION_DATA_SOURCE_ID to the right data source.`;
+    const e = new Error(message); e.status = r.status === 401 ? 503 : 502; throw e;
+  }
   return j;
 }
 
