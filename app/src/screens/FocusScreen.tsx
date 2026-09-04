@@ -1,3 +1,4 @@
+import { taskTitle } from '../lib/title';
 import { Avatar } from '../components/Avatar';
 import { CloseIcon } from '../components/Icons';
 import { person } from '../lib/people';
@@ -27,7 +28,8 @@ export function FocusScreen({ task: t, index, total, out, onExit, onDone, onLate
         {t && owner && (
           <div className={`focus-fade${out ? ' is-out' : ''}`}>
             <span className="eyebrow">{t.category}</span>
-            <h1 className="focus-title">{t.action}</h1>
+            <h1 className="focus-title">{taskTitle(t)}</h1>
+            {t.title && t.action !== taskTitle(t) && <div className="focus-action">{t.action}</div>}
             <div className="focus-subject">{t.from} — {t.subject}</div>
             <div className="focus-meta"><Avatar person={owner} size={24} fs={10} /><span>{owner.short}{t.priority === 'High' ? ' · High priority' : ''}</span></div>
           </div>

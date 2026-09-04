@@ -112,6 +112,7 @@ export function pageToItem(page) {
     id: String(page.id || '').replace(/-/g, ''),
     action: text(P['Next action']) || subject,
     subject,
+    title: text(P['Title']) || null,
     from: text(P['From']) || email(P['Sender email']),
     owner: ownerId(text(P['Owner'])),
     ownerName: text(P['Owner']) || null,
@@ -154,6 +155,7 @@ const sel = name => ({ select: name ? { name } : null });
 /** Local "YYYY-MM-DDTHH:MM:00±HH:MM" from the phone is passed through; a bare date stays a date. */
 export function patchToProperties(patch, current) {
   const props = {};
+  if (patch.title !== undefined) props['Title'] = rich(patch.title);
   if (patch.completed !== undefined) props['Completed'] = { checkbox: !!patch.completed };
   if (patch.review !== undefined) props['Carla review'] = sel(patch.review);
   if (patch.feedback !== undefined) props['Carla feedback'] = rich(patch.feedback);

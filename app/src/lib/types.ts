@@ -9,6 +9,8 @@ export interface Task {
   id: string;
   action: string;
   subject: string;
+  /** Short title for cards and lists — the Notion "Title" property when filled, otherwise the app shortens `action` itself (lib/title.ts). */
+  title?: string | null;
   from: string;
   owner: OwnerId;
   /** Raw Owner text from Notion — shows people outside the team. */
@@ -69,7 +71,7 @@ export interface Person {
   keys: string[];
 }
 
-export type TaskPatch = Partial<Pick<Task, 'completed' | 'due' | 'time' | 'review' | 'feedback' | 'draft' | 'owner' | 'priority' | 'resolvedBy' | 'project' | 'category' | 'teamReview' | 'reviewRequest' | 'reviewReply' | 'requestedBy' | 'waitingOn' | 'parentId' | 'dependsOn'>>;
+export type TaskPatch = Partial<Pick<Task, 'title' | 'completed' | 'due' | 'time' | 'review' | 'feedback' | 'draft' | 'owner' | 'priority' | 'resolvedBy' | 'project' | 'category' | 'teamReview' | 'reviewRequest' | 'reviewReply' | 'requestedBy' | 'waitingOn' | 'parentId' | 'dependsOn'>>;
 
 export type RelayOp =
   | { kind: 'update'; id: string; patch: TaskPatch }

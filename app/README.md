@@ -37,6 +37,16 @@ but own nothing until they are added.
   snooze, delegate to a teammate with a note, *Ask Carla to confirm* (text, links, attachments), add subtasks and
   dependencies to their own tasks, and quick-add tasks for themselves.
 
+## Task titles
+
+LOLI's "Next action" is a full sentence (often 80–200 characters), too long to scan on a phone. The app shows the Notion
+**Title** property instead — a short, direct title (verb + object + the name the team recognises, no dates, no parentheses) —
+and keeps the full sentence on the task's own screen. When a task has no title yet (LOLI has just filed it), `src/lib/title.ts`
+shortens the sentence itself: it drops parentheses and preambles, cuts before a second verb, a purpose clause, a deadline or a
+caveat, and caps the result at 64 characters; for LOLI's generic boilerplate ("Revisar o e-mail e executar a ação solicitada")
+it falls back to the cleaned e-mail subject. Managers can write titles for the whole inbox through `POST /update` with
+`patch: { title }`.
+
 ## Data and sync
 
 `src/store/useInbox.ts` reads `GET /api/smart-inbox` (open items plus anything completed in the last week, polled every

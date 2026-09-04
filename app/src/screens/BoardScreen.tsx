@@ -1,3 +1,4 @@
+import { taskTitle } from '../lib/title';
 import { useState } from 'react';
 import { Avatar } from '../components/Avatar';
 import { Logo } from '../components/Logo';
@@ -66,7 +67,7 @@ export function BoardScreen({ role, myOwner, tasks, onMove, onOpen, onSettings }
                   <div key={t.id} className={`kcard${isMoving ? ' is-moving' : ''}`}>
                     <div className="kcard-body" onClick={() => onOpen(t.id)}>
                       <div className="home-card-top"><span className="home-from">{t.from}</span><Avatar person={o} size={20} fs={9} /></div>
-                      <div className="home-card-title">{t.action}</div>
+                      <div className="home-card-title">{taskTitle(t)}</div>
                       <TaskTags task={t} compact />
                     </div>
                     {isMoving ? (

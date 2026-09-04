@@ -442,3 +442,7 @@ input::placeholder, textarea::placeholder { color: #9A958C; }
 .banner-error { background: #FBE9E4; color: #7A2E1D; border: 1px solid #F3C9BE; }
 .banner-error .btn { flex: none; }
 .btn.is-busy { opacity: 0.6; pointer-events: none; }
+
+/* ---- short titles: the full "next action" moves under the heading ---- */
+.detail-action { margin-top: 12px; font-size: 15px; line-height: 1.5; color: var(--ink-soft); }
+.focus-action { font-size: 15px; line-height: 1.5; color: var(--ink-soft); }

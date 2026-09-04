@@ -63,6 +63,7 @@ export function rowToTask(row: Row): Task {
   return {
     id: pageIdFromUrl(str(row['url'])),
     action, subject,
+    title: plain(row['Title']) || null,
     from: plain(row['From']) || plain(row['Sender email']),
     owner: ownerId(str(row['Owner'])),
     priority: priorities.includes(p as Priority) ? (p as Priority) : null,
