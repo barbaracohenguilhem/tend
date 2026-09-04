@@ -28,8 +28,9 @@ Environment variables (Netlify → Site configuration → Environment variables)
 Roles come from the roster in `src/lib/team.ts` (mirrored in `api/_lib.js`); addresses not on the roster can sign in
 but own nothing until they are added.
 
-- **Carla** (`design@`) — Home: *Your team asks* (Approve / No with a reply), *To decide* (every LOLI proposal pending
-  review, whoever the task belongs to), *To deliver*, *Also in your name*, *Sent back*, *Quick checks*. Board (Today /
+- **Carla** (`design@`) — Home: *Your team asks* (Approve / No with a reply), *To decide* (LOLI proposals for her own
+  tasks), *To deliver*, *Also in your name*, *Sent back*, *Team proposals* (LOLI proposals for the team's tasks, which
+  also wait for her approval), *Quick checks*. Board (Today /
   Tomorrow / Later / No date), Calendar, Today, Review, chat, forwarding, field editing, subtasks and dependencies.
 - **Barbara** (`bc@`) — Home: *Approved — for you to do*, *Handed to you*, *Rejected — with her reason*, *Needs an owner*
   (LOLI could not tell whose), *Team waiting on Carla*, *She did it herself* (struck). Same manager tools.

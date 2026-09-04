@@ -38,18 +38,21 @@ export function HomeScreen({ role, name, myOwner, tasks, loading, error, onRetry
   if (role === 'carla') {
     const mine = open.filter(t => t.owner === 'carla');
     const asks = open.filter(t => t.teamReview === 'Requested').sort(sortTasks);
-    // LOLI marks every proposal "Pending review" whoever the task belongs to — the decision is always Carla's.
-    const decide = open.filter(t => isPendingDraft(t) && t.teamReview !== 'Requested').sort(sortTasks);
+    // LOLI marks every proposal "Pending review" whoever the task belongs to — the decision is always Carla's — but her own
+    // tasks come first: the team's proposals get their own section further down.
+    const decide = mine.filter(t => isPendingDraft(t) && t.teamReview !== 'Requested').sort(sortTasks);
+    const team = open.filter(t => t.owner !== 'carla' && isPendingDraft(t) && t.teamReview !== 'Requested').sort(sortTasks);
     const deliver = mine.filter(t => needsDelivery(t) && !isPendingDraft(t)).sort(sortTasks);
     const rest = mine.filter(t => !isPendingDraft(t) && !needsDelivery(t) && t.review !== 'Changes requested' && t.teamReview !== 'Requested').sort(sortTasks);
     const restSplit = split(rest); const decideSplit = split(decide);
     const waiting = mine.filter(t => t.review === 'Changes requested').sort(sortTasks);
     sections = [
       { key: 'asks', title: 'Your team asks', hint: 'Someone wants your go-ahead before acting', rows: asks, empty: '' },
-      { key: 'decide', title: 'To decide', hint: 'Proposed responses waiting for your approval — yours and the team\'s', rows: decideSplit.key, empty: 'Nothing to decide.' },
+      { key: 'decide', title: 'To decide', hint: 'Proposed responses for your own tasks, waiting for your approval', rows: decideSplit.key, empty: 'Nothing to decide.' },
       { key: 'deliver', title: 'To deliver', hint: 'Documents or files someone needs from you', rows: deliver, empty: '' },
       { key: 'mine', title: 'Also in your name', rows: restSplit.key, empty: 'Nothing else in your name.' },
       { key: 'waiting', title: 'Sent back — being rewritten', hint: 'You rejected these; a new proposal will show up in "To decide"', rows: waiting, empty: '' },
+      { key: 'team', title: 'Team proposals', hint: 'Proposed responses for the team\'s tasks — they wait for your approval too', rows: team, empty: '' },
       { key: 'light', title: 'Quick checks', hint: 'Low-stakes confirmations. Glance, tap done.', rows: [...decideSplit.light, ...restSplit.light], light: true, empty: '' },
     ];
   } else if (role === 'barbara') {
