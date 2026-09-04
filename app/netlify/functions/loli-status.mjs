@@ -17,6 +17,7 @@ export default async function (request) {
     lock: await state.get('lock'), cursors,
     totals: { runs: runs.length, created: runs.reduce((n, r) => n + r.mailboxes.reduce((m, x) => m + (x.created || 0), 0), 0), updated: runs.reduce((n, r) => n + r.mailboxes.reduce((m, x) => m + (x.updated || 0), 0), 0), usd: Math.round(runs.reduce((n, r) => n + (r.usd || 0), 0) * 100) / 100 },
     lastRuns: runs.slice(0, 10),
+    classified: ((await state.get('classified')) || []).slice(0, 10),
   };
   return new Response(JSON.stringify(body, null, 1), { status: 200, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } });
 }
