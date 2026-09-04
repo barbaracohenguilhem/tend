@@ -27,8 +27,7 @@ export default async function (request) {
     if (b.write === true) entry.rowId = await createRow(record, email);
   } catch (e) { entry.error = e && e.message ? e.message : String(e); }
   entry.ms = Date.now() - started;
-  const list = (await state.get('classified')) || [];
-  list.unshift(entry); await state.set('classified', list.slice(0, 30));
+  await state.set(`classified:${String(started).padStart(15, '0')}-${id.replace(/[^A-Za-z0-9_-]/g, '_')}`, entry);
   console.log('loli classify', JSON.stringify({ id, ms: entry.ms, error: entry.error, title: entry.record && entry.record.title }));
   return new Response(JSON.stringify(entry), { status: 200, headers: { 'content-type': 'application/json' } });
 }
