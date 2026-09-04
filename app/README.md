@@ -49,7 +49,7 @@ the app shell available offline; `/api` is never cached.
 Due dates with a time are stored in Notion with an offset and shown in the phone's own time zone.
 
 The server speaks Notion API version `2025-09-03` and addresses the Smart Inbox *data source* directly
-(`api/_lib.js`). Older versions query the database as a whole and stop working ("this database has multiple data
+(`api/_core.js`; the id lives in `api/_lib.js`). Older versions query the database as a whole and stop working ("this database has multiple data
 sources") the moment a second table is added to it in Notion — which is what took the app down on 3 Sept 2026.
 
 ## Run it locally
