@@ -2,7 +2,7 @@
 import { getStore } from '@netlify/blobs';
 
 export function blobState(name = 'loli') {
-  const store = getStore(name);
+  const store = getStore({ name, consistency: 'strong' }); // strong: the run lock must be seen at once by every deploy that shares the store
   return {
     async get(key, fallback = null) { const v = await store.get(key, { type: 'json' }); return v === null || v === undefined ? fallback : v; },
     async set(key, value) { await store.setJSON(key, value); },
