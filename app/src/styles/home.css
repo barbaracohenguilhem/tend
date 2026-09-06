@@ -1,0 +1,11 @@
+.home-screen .home-card { width: 100%; border: 0; text-align: left; font-family: inherit; padding: 16px; gap: 8px; }
+.home-screen .home-card-title { font-size: 17px; line-height: 1.4; }
+.home-screen .home-context { font-size: 15px; line-height: 1.5; -webkit-line-clamp: 3; }
+.home-screen .home-from, .home-screen .home-hint, .home-screen .home-ask, .home-screen .home-reason { font-size: 14px; line-height: 1.5; }
+.home-screen .home-review { margin-top: 16px; min-height: 48px; font: 600 15px var(--font-sans); }
+.home-screen .home-status { margin-top: 20px; color: var(--ink-mute); font-size: 15px; }
+.home-screen .home-secondary { display: block; margin-top: 20px; border-top: 1px solid rgba(27,24,21,.1); padding-top: 8px; }
+.home-screen .home-secondary summary { cursor: pointer; padding: 14px 2px; color: var(--ink-soft); font-size: 16px; font-weight: 600; }
+.home-screen .home-count { float: right; font-size: 14px; color: var(--ink-mute); font-weight: 500; }
+.home-screen .home-all { width: 100%; min-height: 48px; font-family: inherit; }
+.home-screen button:focus-visible, .home-screen summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }

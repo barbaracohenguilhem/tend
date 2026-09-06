@@ -1,0 +1,102 @@
+/* Keep the existing Aura surfaces while putting Carla's decision first. */
+.detail-review button { font-family: var(--font-sans); }
+.detail-review button.btn { border: 1px solid transparent; }
+.detail-review button.btn-white { border-color: rgba(27, 24, 21, 0.1); }
+.detail-review button.icon-btn { border: 0; }
+.detail-review button.parent-link,
+.detail-review button.link {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+  font-size: inherit;
+}
+.detail-review button.parent-link { font-size: 12px; }
+.detail-review button:focus-visible,
+.detail-review summary:focus-visible,
+.detail-review .detail-decision:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 4px;
+}
+.detail-review .detail-top .eyebrow { margin-top: 0; }
+.detail-review h2.eyebrow { margin-bottom: 0; }
+.detail-review .draft-card {
+  padding: 18px;
+  border-radius: 22px;
+  font-size: 15px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+.detail-review .detail-summary,
+.detail-review .detail-deliverable { overflow-wrap: anywhere; }
+.detail-review .detail-deliverable {
+  margin: 18px 0 0;
+  color: var(--ink-soft);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.detail-review .detail-limitation {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: var(--warning-soft);
+  color: var(--ink-soft);
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.detail-review .detail-limitation p { margin: 6px 0 0; white-space: pre-wrap; }
+.detail-review .detail-decision { scroll-margin: 24px 0 140px; }
+.detail-review .detail-decision-note {
+  margin: 0;
+  color: var(--ink-mute);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.detail-review .detail-decision .btn { min-height: 48px; padding: 12px 8px; font-size: 14px; }
+.detail-review .detail-decision form { display: flex; flex-direction: column; gap: 12px; }
+.detail-review .detail-decision form .eyebrow { margin-top: 0; }
+.detail-review .feedback-textarea { font-size: 16px; }
+.detail-review .detail-voice-link {
+  align-self: flex-start;
+  border: 0;
+  background: transparent;
+  padding: 8px 0;
+  color: var(--ink-mute);
+  font-size: 13px;
+  line-height: 1.5;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.detail-review .detail-disclosure {
+  margin-top: 14px;
+  border: 1px solid rgba(27, 24, 21, 0.09);
+  border-radius: 18px;
+  padding: 0 16px;
+  background: rgba(255, 255, 255, 0.48);
+}
+.detail-review .detail-disclosure > summary {
+  padding: 16px 0;
+  color: var(--ink-mute);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.detail-review .detail-disclosure[open] { padding-bottom: 16px; }
+.detail-review .detail-disclosure-body > .sender,
+.detail-review .detail-disclosure-body > .fields,
+.detail-review .detail-disclosure-body > .kv-card,
+.detail-review .detail-disclosure-body > .eyebrow:first-child { margin-top: 0; }
+.detail-review .detail-disclosure-body .sender { flex-wrap: wrap; }
+.detail-review .detail-disclosure-body .sender .sender-who { flex: 1; }
+.detail-review .detail-secondary-complete { width: 100%; }
+.detail-review .detail-secondary-actions { margin-top: 18px; display: flex; flex-direction: column; gap: 10px; }
+.detail-review .detail-secondary-actions .btn { min-height: 44px; }
+.detail-review .detail-conversation .chat { margin-top: 0; }
+.detail-review .detail-voice-note { font-size: 13px; line-height: 1.5; color: var(--ink-mute); margin: 0 0 14px; }
+.detail-review.has-review-footer .detail-scroll { padding-bottom: 132px; }
+.detail-review.has-review-footer .detail-bottom { padding-top: 22px; }
+@media (max-width: 360px) {
+  .detail-review .detail-decision .btn-row { flex-direction: column; }
+}

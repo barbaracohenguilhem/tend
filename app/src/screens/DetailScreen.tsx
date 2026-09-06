@@ -1,5 +1,5 @@
 import { taskTitle } from '../lib/title';
-import { useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { Avatar } from '../components/Avatar';
 import { Chat } from '../components/Chat';
 import { FieldEditor } from '../components/FieldEditor';
@@ -9,7 +9,9 @@ import { addDays, dueLabel, iso } from '../lib/dates';
 import { people, person } from '../lib/people';
 import type { OwnerId, Priority, Role, Task, TaskPatch } from '../lib/types';
 import { isBlocked } from '../lib/weight';
+import { isPendingDraft } from '../lib/review';
 import { useComments } from '../store/useComments';
+import '../styles/detail-review.css';
 
 export interface Decision { kind: 'approve' | 'reject' | 'resolved' | 'complete' | 'reopen'; reason?: string }
 export interface Forward { owner: OwnerId; priority: Priority | null; due: number | null; note: string }
@@ -38,6 +40,15 @@ const dueChoices: { label: string; value: number | null }[] = [{ label: 'Today',
 const prioChoices: (Priority | null)[] = ['High', 'Medium', 'Low', null];
 const teamPeople = people.filter(p => p.id !== 'none' && p.id !== 'carla');
 
+function DetailSection({ title, collapsed, children }: { title: string; collapsed: boolean; children: ReactNode }) {
+  return collapsed ? (
+    <details className="detail-disclosure">
+      <summary>{title}</summary>
+      <div className="detail-disclosure-body">{children}</div>
+    </details>
+  ) : <div>{children}</div>;
+}
+
 export function DetailScreen(props: Props) {
   const { task: t, all, role, me, myOwner, projects, onClose, onOpen, onPatch, onSnooze, onDecide, onForward, onAskCarla, onAnswerRequest, onAddSubtask, notify } = props;
   const manager = role === 'carla' || role === 'barbara';
@@ -55,9 +66,13 @@ export function DetailScreen(props: Props) {
   const [external, setExternal] = useState('');
   const [depSearch, setDepSearch] = useState(''); const [addingDep, setAddingDep] = useState(false);
   const [waiting, setWaiting] = useState(t.waitingOn || '');
+  const decisionRef = useRef<HTMLElement>(null);
+  const conversationRef = useRef<HTMLDetailsElement>(null);
 
-  const pendingDecision = manager && !!t.draft && !t.completed && (t.review === 'Pending review' || t.review === null);
+  const pendingDecision = manager && isPendingDraft(t);
   const pendingRequest = manager && t.teamReview === 'Requested';
+  const simpleDetails = role === 'carla';
+  const reviewFooter = simpleDetails && pendingDecision;
   const gmail = () => { if (t.gmail) window.open(t.gmail, '_blank', 'noopener'); else notify('No Gmail link on this item'); };
   const subtasks = all.filter(x => x.parentId === t.id);
   const parent = t.parentId ? all.find(x => x.id === t.parentId) : undefined;
@@ -65,22 +80,22 @@ export function DetailScreen(props: Props) {
   const blocked = isBlocked(t, all);
   const canStructure = manager || isMine;
 
-  const rejectNow = () => { if (!reason.trim()) { notify('Say why it is rejected'); return; } onDecide({ kind: 'reject', reason: reason.trim() }); setRejecting(false); setReason(''); };
-  const rejectByVoice = async (blob: Blob, name: string) => { const ok = await chat.upload('voice', blob, name, 'Rejected — reason in this voice note'); if (ok) { onDecide({ kind: 'reject', reason: '(reason recorded as a voice note in the conversation)' }); setRejecting(false); } };
+  const rejectNow = () => { if (!reason.trim()) { notify('Describe the changes you need'); return; } onDecide({ kind: 'reject', reason: reason.trim() }); setRejecting(false); setReason(''); };
+  const rejectByVoice = async (blob: Blob, name: string) => { const ok = await chat.upload('voice', blob, name, 'Changes requested — reason in this voice note'); if (ok) { onDecide({ kind: 'reject', reason: '(reason recorded as a voice note in the conversation)' }); setRejecting(false); } };
   const sendAsk = () => { const text = ask.trim(); if (!text) { notify('Write what you want Carla to confirm'); return; } onAskCarla(askLinks.length ? `${text}\n\nLinks:\n${askLinks.join('\n')}` : text); setAsking(false); setAsk(''); setAskLinks([]); };
   const addLink = () => { const v = askLink.trim(); if (!v) return; setAskLinks(l => [...l, /^https?:\/\//i.test(v) ? v : 'https://' + v]); setAskLink(''); };
   const submitSub = () => { if (!sub.title.trim()) { notify('Give the subtask a title'); return; } onAddSubtask({ ...sub, title: sub.title.trim(), ownerName: external.trim() || null, owner: external.trim() ? 'none' : sub.owner }); setAddingSub(false); setSub({ ...sub, title: '' }); setExternal(''); };
   const depCandidates = depSearch.trim().length < 2 ? [] : all.filter(x => x.id !== t.id && !x.completed && !(t.dependsOn || []).includes(x.id) && (taskTitle(x) + ' ' + x.action + ' ' + x.subject).toLowerCase().includes(depSearch.toLowerCase())).slice(0, 6);
 
   return (
-    <div className="detail">
+    <div className={`detail detail-review${reviewFooter ? ' has-review-footer' : ''}`}>
       <div className="detail-top">
-        <div className="icon-btn" onClick={onClose} aria-label="Back"><BackIcon /></div>
+        <button type="button" className="icon-btn" onClick={onClose} aria-label="Back"><BackIcon /></button>
         <span className="eyebrow">{t.category}</span>
         <div className="spacer-40" />
       </div>
       <div className="detail-scroll scroll">
-        {parent && <div className="parent-link" onClick={() => onOpen(parent.id)}>Part of: <b>{taskTitle(parent)}</b></div>}
+        {parent && <button type="button" className="parent-link" onClick={() => onOpen(parent.id)}>Part of: <b>{taskTitle(parent)}</b></button>}
         <h1 className="detail-title">{taskTitle(t)}</h1>
         {t.title && t.action !== taskTitle(t) && <div className="detail-action">{t.action}</div>}
         {t.subject !== t.action && <div className="detail-subject">{t.subject}</div>}
@@ -92,47 +107,79 @@ export function DetailScreen(props: Props) {
             {t.reviewRequest && <div className="request-text">{t.reviewRequest}</div>}
             {t.reviewReply && <div className="request-reply"><b>Carla:</b> {t.reviewReply}</div>}
             {pendingRequest && answering === null && (
-              <div className="btn-row"><div className="btn btn-ink" onClick={() => setAnswering(true)}>Approve</div><div className="btn btn-white" onClick={() => setAnswering(false)}>No</div></div>
+              <div className="btn-row"><button type="button" className="btn btn-ink" onClick={() => setAnswering(true)}>Approve request</button><button type="button" className="btn btn-white" onClick={() => setAnswering(false)}>Decline request</button></div>
             )}
             {pendingRequest && answering !== null && (
               <>
-                <textarea className="textarea feedback-textarea" placeholder={answering ? 'Optional note…' : 'Why not? (required)'} value={reply} onChange={e => setReply(e.target.value)} />
+                <textarea aria-label={answering ? 'Optional approval note' : 'Reason for declining'} className="textarea feedback-textarea" placeholder={answering ? 'Optional note…' : 'Why not? (required)'} value={reply} onChange={e => setReply(e.target.value)} />
                 <div className="btn-row">
-                  <div className="btn btn-ink" onClick={() => { if (!answering && !reply.trim()) { notify('Say why'); return; } onAnswerRequest(answering, reply.trim()); setAnswering(null); setReply(''); }}>{answering ? 'Send approval' : 'Send answer'}</div>
-                  <div className="btn btn-white" onClick={() => setAnswering(null)}>Cancel</div>
+                  <button type="button" className="btn btn-ink" onClick={() => { if (!answering && !reply.trim()) { notify('Say why'); return; } onAnswerRequest(answering, reply.trim()); setAnswering(null); setReply(''); }}>{answering ? 'Send approval' : 'Send answer'}</button>
+                  <button type="button" className="btn btn-white" onClick={() => setAnswering(null)}>Cancel</button>
                 </div>
               </>
             )}
           </div>
         )}
 
+        {t.summary && <section className="detail-overview" aria-label="Summary"><h2 className="eyebrow">Summary</h2><div className="detail-summary">{t.summary}</div></section>}
+        {t.deliverable && <p className="detail-deliverable"><b>To deliver:</b> {t.deliverable}</p>}
+        {t.draft && <section aria-label="Proposed response"><h2 className="eyebrow">Proposed response</h2><div className="draft-card">{t.draft}</div></section>}
+        {t.limitation && <div className="detail-limitation"><strong>Before you decide</strong><p>{t.limitation}</p></div>}
+        {t.feedback && <section aria-label="Carla's feedback"><h2 className="eyebrow">Carla's feedback</h2><div className="feedback-box">{t.feedback}</div></section>}
+
+        {pendingDecision && (
+          <section className="decide detail-decision" ref={decisionRef} tabIndex={-1} aria-label="Your decision">
+            {!rejecting ? (
+              <>
+                <p className="detail-decision-note">Barbara will handle the approved response.</p>
+                <div className="btn-row">
+                  <button type="button" className="btn btn-ink" onClick={() => onDecide({ kind: 'approve' })}>Approve</button>
+                  <button type="button" className="btn btn-white" onClick={() => setRejecting(true)}>Request changes</button>
+                </div>
+              </>
+            ) : (
+              <form onSubmit={e => { e.preventDefault(); rejectNow(); }}>
+                <label className="eyebrow" htmlFor="detail-change-reason">What should change?</label>
+                <textarea id="detail-change-reason" className="textarea feedback-textarea" autoFocus placeholder="What is wrong or missing…" value={reason} onChange={e => setReason(e.target.value)} />
+                <div className="btn-row">
+                  <button type="submit" className="btn btn-ink">Send request</button>
+                  <button type="button" className="btn btn-white" onClick={() => setRejecting(false)}>Cancel</button>
+                </div>
+                {chat.available && <button type="button" className="detail-voice-link" onClick={() => { if (conversationRef.current) { conversationRef.current.open = true; conversationRef.current.scrollIntoView({ block: 'start' }); } }}>Or explain with a voice note</button>}
+              </form>
+            )}
+          </section>
+        )}
+
+        <DetailSection title={t.hasAttachments || (t.files?.length ?? 0) > 0 ? 'Original email & files' : 'Original email'} collapsed={simpleDetails}>
         <div className="sender">
           <div className="sender-who">
             <span className="sender-name">{t.from || 'Unknown sender'}</span>
             {t.senderEmail && <a className="sender-email" href={`mailto:${t.senderEmail}`}>{t.senderEmail}</a>}
           </div>
-          {t.gmail && <div className="btn btn-white btn-sm" onClick={gmail}>Open in Gmail</div>}
+          {t.gmail && <button type="button" className="btn btn-white btn-sm" onClick={gmail}>Open in Gmail</button>}
         </div>
-
-        <FieldEditor task={t} editable={manager} dueEditable={manager || isMine} projects={projects} onPatch={onPatch} />
-
-        {t.summary && (<><div className="eyebrow">Summary</div><div className="detail-summary">{t.summary}</div></>)}
 
         {(t.deliverable || t.hasAttachments || (t.files && t.files.length > 0)) && (
           <>
             <div className="eyebrow">Files</div>
             <div className="files-card">
               {t.deliverable && <div className="files-ask"><b>To deliver:</b> {t.deliverable}</div>}
-              {t.hasAttachments && <div className="files-note">The original email has attachments. <span className="link" onClick={gmail}>Open it in Gmail</span> to see them.</div>}
+              {t.hasAttachments && <div className="files-note">The original email has attachments. <button type="button" className="link" onClick={gmail}>Open it in Gmail</button> to see them.</div>}
               {t.files && t.files.length > 0 && <div className="files-list">{t.files.map((f, i) => <a key={i} className="file-chip" href={f.url} target="_blank" rel="noopener">{f.name}</a>)}</div>}
               {chat.available && <label className="btn btn-white btn-sm files-attach">Attach a file<input type="file" hidden onChange={async e => { const f = e.target.files?.[0]; if (f) { const ok = await chat.upload('deliverable', f, f.name); notify(ok ? 'File saved to the task' : 'Upload failed'); } e.target.value = ''; }} /></label>}
             </div>
           </>
         )}
 
-        {t.draft && (<><div className="eyebrow">Proposed response</div><div className="draft-card">{t.draft}</div></>)}
-        {t.feedback && (<><div className="eyebrow">Carla's feedback</div><div className="feedback-box">{t.feedback}</div></>)}
+        </DetailSection>
 
+        <DetailSection title="Task details" collapsed={simpleDetails}>
+        <FieldEditor task={t} editable={manager} dueEditable={manager || isMine} projects={projects} onPatch={onPatch} />
+
+        </DetailSection>
+
+        <DetailSection title={`Subtasks & dependencies${subtasks.length ? ` · ${subtasks.length}` : ''}${blocked ? ' · blocked' : ''}`} collapsed={simpleDetails}>
         {/* ---- structure: subtasks and dependencies ---- */}
         <div className="eyebrow">Subtasks{subtasks.length ? ` · ${subtasks.length}` : ''}</div>
         <div className="struct-card">
@@ -188,21 +235,7 @@ export function DetailScreen(props: Props) {
           )}
         </div>
 
-        {/* ---- decisions (LOLI drafts) ---- */}
-        {pendingDecision && !rejecting && (
-          <div className="decide">
-            <div className="btn btn-ink btn-big" onClick={() => onDecide({ kind: 'approve' })}>Approve</div>
-            <div className="btn-row"><div className="btn btn-white" onClick={() => setRejecting(true)}>Reject</div><div className="btn btn-white" onClick={() => onDecide({ kind: 'resolved' })}>I did it myself</div></div>
-          </div>
-        )}
-        {rejecting && (
-          <div className="decide">
-            <div className="eyebrow">Why is it rejected?</div>
-            <textarea className="textarea feedback-textarea" placeholder="What is wrong or missing…" value={reason} onChange={e => setReason(e.target.value)} />
-            <div className="btn-row"><div className="btn btn-ink" onClick={rejectNow}>Send rejection</div><div className="btn btn-white" onClick={() => setRejecting(false)}>Cancel</div></div>
-            <span className="chat-note">Or record the reason as a voice note below and it will be attached to the rejection.</span>
-          </div>
-        )}
+        </DetailSection>
 
         {/* ---- team: ask Carla ---- */}
         {!manager && !t.completed && t.teamReview !== 'Requested' && !asking && (
@@ -222,6 +255,8 @@ export function DetailScreen(props: Props) {
           </div>
         )}
 
+        {!t.completed && (manager || isMine) && <DetailSection title="More task options" collapsed={simpleDetails}>
+        {pendingDecision && <button type="button" className="btn btn-white btn-big-soft detail-secondary-complete" onClick={() => onDecide({ kind: 'resolved' })}>I did it myself</button>}
         {/* ---- forward / delegate ---- */}
         {!t.completed && !forwarding && (manager || isMine) && (
           <div className="btn-row" style={{ marginTop: 18 }}>
@@ -245,25 +280,48 @@ export function DetailScreen(props: Props) {
           </div>
         )}
 
+        {reviewFooter && (
+          <div className="detail-secondary-actions">
+            <span className="field-label">Remind me</span>
+            <div className="btn-row">
+              <button type="button" className="btn btn-white" onClick={() => onSnooze('later')}>Later today</button>
+              <button type="button" className="btn btn-white" onClick={() => onSnooze(1)}>Tomorrow</button>
+              <button type="button" className="btn btn-white" onClick={() => onSnooze(7)}>Next week</button>
+            </div>
+            <button type="button" className="btn btn-white btn-big-soft" onClick={() => onDecide({ kind: 'complete' })}>Mark task completed</button>
+          </div>
+        )}
+        </DetailSection>}
+
         {manager && (
+          <details className="detail-disclosure detail-conversation" ref={conversationRef} open={!simpleDetails || rejecting || undefined}>
+            <summary>Conversation & voice notes</summary>
+            {rejecting && <p className="detail-voice-note">Record your feedback here. Sending the voice note will request changes to this response.</p>}
           <Chat comments={chat.comments} loading={chat.loading} error={chat.error} busy={chat.busy} available={chat.available} me={me}
             onSend={chat.send}
             onVoice={(blob, name) => { if (rejecting) rejectByVoice(blob, name); else chat.upload('voice', blob, name); }}
             onAttach={async f => { const ok = await chat.upload('deliverable', f, f.name, `📎 ${f.name}`); if (!ok) notify('Upload failed'); }}
             attachLabel={t.deliverable ? 'Attach the requested file' : 'Attach a file'} />
+          </details>
         )}
       </div>
       <div className="detail-bottom">
-        {(manager || isMine) && (
-          <div className="btn-row">
-            <div className="btn btn-white" onClick={() => onSnooze('later')}>Later today</div>
-            <div className="btn btn-white" onClick={() => onSnooze(1)}>Tomorrow</div>
-            <div className="btn btn-white" onClick={() => onSnooze(7)}>Next week</div>
-          </div>
+        {reviewFooter ? (
+          <button type="button" className="btn btn-ink btn-big" onClick={() => { decisionRef.current?.scrollIntoView({ block: 'center' }); decisionRef.current?.focus({ preventScroll: true }); }}>{rejecting ? 'Continue feedback' : 'Go to decision'}</button>
+        ) : (
+          <>
+            {(manager || isMine) && (
+              <div className="btn-row">
+                <button type="button" className="btn btn-white" onClick={() => onSnooze('later')}>Later today</button>
+                <button type="button" className="btn btn-white" onClick={() => onSnooze(1)}>Tomorrow</button>
+                <button type="button" className="btn btn-white" onClick={() => onSnooze(7)}>Next week</button>
+              </div>
+            )}
+            {t.completed
+              ? <button type="button" className="btn btn-ink btn-big" onClick={() => onDecide({ kind: 'reopen' })}>Reopen</button>
+              : <button type="button" className="btn btn-ink btn-big" onClick={() => onDecide({ kind: 'complete' })}>{role === 'barbara' ? 'Done — mark completed' : 'Mark completed'}</button>}
+          </>
         )}
-        {t.completed
-          ? <div className="btn btn-ink btn-big" onClick={() => onDecide({ kind: 'reopen' })}>Reopen</div>
-          : <div className="btn btn-ink btn-big" onClick={() => onDecide({ kind: 'complete' })}>{role === 'barbara' ? 'Done — mark completed' : 'Mark completed'}</div>}
       </div>
     </div>
   );

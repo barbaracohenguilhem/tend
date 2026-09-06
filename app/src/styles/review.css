@@ -1,0 +1,50 @@
+.review-page button { font-family: var(--font-sans); }
+.review-page button:focus-visible,
+.review-page a:focus-visible,
+.review-page summary:focus-visible,
+.review-page textarea:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
+.review-page button:disabled { cursor: default; opacity: 0.45; }
+.review-page button:disabled:active { transform: none; }
+.review-page .btn { min-height: 44px; line-height: 1.35; }
+.review-page .btn-ink { border: 1px solid var(--ink); }
+.review-page .btn-row > .btn { padding: 11px 12px; }
+.review-logo-button { padding: 0; border: 0; background: transparent; min-height: 28px; cursor: pointer; }
+.review-intro { margin: 12px 0 0; font-size: 13px; line-height: 1.55; color: var(--ink-mute); max-width: 32ch; }
+.review-page .review-card { gap: 16px; }
+.review-page .review-subject { margin: 0; font-weight: 400; overflow-wrap: anywhere; }
+.review-page .review-action { margin-top: -6px; overflow-wrap: anywhere; }
+.review-page .review-from { color: var(--ink-mute); }
+.review-page .eyebrow { margin: 0; }
+.review-summary { padding: 14px; border-radius: 14px; background: var(--paper-soft); }
+.review-summary p { margin: 7px 0 0; color: var(--ink-soft); font-size: 14px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+.review-proposal { display: flex; flex-direction: column; gap: 10px; }
+.review-page .draft { font-size: 14px; line-height: 1.65; color: var(--ink); overflow-wrap: anywhere; }
+.review-page .limitation { margin-top: 2px; padding: 10px 12px; border-left: 2px solid var(--linen); font-family: var(--font-sans); font-size: 12px; font-style: normal; overflow-wrap: anywhere; }
+.review-text-button { align-self: flex-start; padding: 7px 0; min-height: 40px; background: transparent; border: 0; font-size: 13px; font-weight: 600; color: var(--ink-mute); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.review-page .review-actions { margin-top: 2px; }
+.review-page .review-actions > .btn { padding: 12px 10px; min-width: 0; }
+.review-form { display: flex; flex-direction: column; gap: 10px; }
+.review-field-label { font-size: 13px; line-height: 1.45; font-weight: 600; color: var(--ink-soft); }
+.review-page .draft-textarea,
+.review-page .feedback-textarea { font-size: 16px; }
+.review-page .feedback-box { white-space: pre-wrap; overflow-wrap: anywhere; }
+.review-more { border-top: 1px solid var(--paper-soft); padding-top: 2px; }
+.review-more > summary { padding: 12px 2px; color: var(--ink-mute); font-size: 12px; font-weight: 600; cursor: pointer; }
+.review-more-actions { display: flex; flex-direction: column; gap: 2px; padding: 0 0 4px; }
+.review-more-actions > button,
+.review-more-actions > a { display: flex; align-items: center; min-height: 44px; box-sizing: border-box; padding: 10px 12px; border: 0; background: var(--paper-soft); border-radius: 10px; color: var(--ink-soft); text-align: left; font-size: 13px; cursor: pointer; }
+.review-more-actions > button:hover,
+.review-more-actions > a:hover { background: var(--bone); text-decoration: none; }
+.review-history { margin-top: 26px; border-top: 1px solid var(--linen); padding-top: 10px; }
+.review-history > summary { padding: 12px 4px; cursor: pointer; font-size: 13px; color: var(--ink-mute); font-weight: 600; }
+.review-history > summary > span { margin-left: 6px; padding: 3px 8px; border-radius: 999px; background: #fff; }
+.review-page .decided-row { border: 0; width: 100%; text-align: left; min-height: 52px; }
+.review-status { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 18px; padding: 14px; border-radius: 16px; background: var(--paper-soft); color: var(--ink-soft); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.review-status p { margin: 6px 0 0; }
+.review-status.is-error { background: var(--danger-soft); color: var(--danger); flex-wrap: wrap; }
+.review-status.is-pending { background: var(--warning-soft); color: var(--warning); }
+@media (max-width: 350px) {
+  .review-page .review-card { padding: 16px; }
+  .review-page .review-actions { flex-direction: column; }
+  .review-page .review-top { flex-wrap: wrap; }
+}
