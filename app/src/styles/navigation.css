@@ -1,0 +1,7 @@
+.tend-navigation.tabbar { gap: 6px; padding: 0 10px; box-sizing: border-box; }
+.tend-navigation .tabs { flex: 1; min-width: 0; justify-content: space-between; padding: 5px; gap: 0; }
+.tend-navigation .tab { flex: 1; min-width: 0; min-height: 48px; flex-direction: column; justify-content: center; gap: 5px; padding: 7px 2px; border: 0; font-family: inherit; font-size: 11px; line-height: 1.15; border-radius: 18px; }
+.tend-navigation .tab.is-active { padding: 7px 2px; }
+.tend-navigation .tab > svg { flex-shrink: 0; }
+.tend-navigation .fab { width: 44px; height: 44px; flex-shrink: 0; border: 0; }
+.tend-navigation button:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }

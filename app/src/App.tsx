@@ -5,6 +5,7 @@ import type { Anim } from './components/TaskList';
 import { addDays, dayOffset, dueLabel, iso, today } from './lib/dates';
 import { person } from './lib/people';
 import { sortTasks } from './lib/sort';
+import { isPendingDraft } from './lib/review';
 import { setStorageUser } from './lib/storage';
 import type { Meta, Mode, OwnerId, Review, Screen, Task, TaskPatch } from './lib/types';
 import { useInbox } from './store/useInbox';
@@ -109,7 +110,7 @@ function InboxApp({ session, onSignOut }: { session: Session; onSignOut: () => v
   const inMode = useCallback((t: Task, m: Mode = mode) => (m === 'carla' ? true : isHandedOff(t)), [mode]);
   const openOf = useCallback((ts: Task[], m: Mode) => ts.filter(t => !t.completed && inMode(t, m)), [inMode]);
   const open = openOf(tasks, mode);
-  const pendingReview = tasks.filter(t => !t.completed && t.draft && (t.review === 'Pending review' || t.review === 'Changes requested'));
+  const pendingReview = tasks.filter(isPendingDraft);
   const handoff = tasks.filter(t => !t.completed && isHandedOff(t));
   const reviewList = (carla ? pendingReview : handoff).slice().sort(sortTasks);
   const decided = carla ? handoff : [];
@@ -327,7 +328,7 @@ function InboxApp({ session, onSignOut }: { session: Session; onSignOut: () => v
         <PhoneChrome />
 
         {screen === 'home' && (
-          <HomeScreen role={role} name={myName} myOwner={myOwner} tasks={tasks} loading={inbox.loading} error={connectionError} onRetry={() => { inbox.reload(); show('Reloading…'); }} pendingCount={inbox.pending.length} onOpen={openDetail} onSeeAll={teamOnly ? null : () => { setFilter('all'); goTo('today'); }} onSettings={() => setSettingsOpen(true)} />
+          <HomeScreen role={role} name={myName} myOwner={myOwner} tasks={tasks} loading={inbox.loading} error={connectionError} onRetry={() => { inbox.reload(); show('Reloading…'); }} pendingCount={inbox.pending.length} onOpen={openDetail} onReview={() => goTo('review')} onSeeAll={teamOnly ? null : () => { setFilter('all'); goTo('today'); }} onSettings={() => setSettingsOpen(true)} />
         )}
         {screen === 'board' && <BoardScreen role={role} myOwner={myOwner} tasks={tasks} onMove={moveTo} onOpen={openDetail} onSettings={() => setSettingsOpen(true)} />}
         {screen === 'calendar' && <CalendarScreen role={role} myOwner={myOwner} tasks={tasks} onOpen={openDetail} onSettings={() => setSettingsOpen(true)} />}
@@ -345,6 +346,8 @@ function InboxApp({ session, onSignOut }: { session: Session; onSignOut: () => v
         {screen === 'review' && (
           <ReviewScreen
             mode={mode} cards={reviewList} decided={decided}
+            loading={inbox.loading} error={connectionError} pendingCount={inbox.pending.length}
+            onRetry={() => { inbox.reload(); show('Reloading…'); }}
             onApprove={id => setReview(id, 'Approved')}
             onChanges={(id, fb) => setReview(id, 'Changes requested', fb)}
             onBarbara={(id, fb) => setReview(id, 'Barbara to handle', fb)}

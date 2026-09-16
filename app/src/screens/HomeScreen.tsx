@@ -5,10 +5,12 @@ import { TaskTags } from '../components/TaskTags';
 import { dateLine } from '../lib/dates';
 import { person } from '../lib/people';
 import { sortTasks } from '../lib/sort';
+import { isPendingDraft } from '../lib/review';
 import type { OwnerId, Role, Task } from '../lib/types';
 import { weightOf } from '../lib/weight';
+import '../styles/home.css';
 
-interface Section { key: string; title: string; hint?: string; rows: Task[]; struck?: boolean; light?: boolean; empty: string }
+interface Section { key: string; title: string; hint?: string; rows: Task[]; struck?: boolean; light?: boolean; collapsed?: boolean; empty: string }
 
 interface Props {
   role: Role;
@@ -21,39 +23,33 @@ interface Props {
   onRetry?: () => void;
   pendingCount?: number;
   onOpen: (id: string) => void;
+  onReview?: () => void;
   onSeeAll: (() => void) | null;
   onSettings: () => void;
 }
 
-/** Waiting for Carla: a proposal with no decision yet ('Changes requested' is waiting on LOLI's rewrite). */
-const isPendingDraft = (t: Task) => !!t.draft && !t.completed && (t.review === 'Pending review' || t.review === null);
-const needsDelivery = (t: Task) => !!t.deliverable && !t.completed && !(t.files && t.files.length);
 const isHandedOff = (t: Task) => t.review === 'Approved' || t.review === 'Barbara to handle';
 const split = (rows: Task[]) => ({ key: rows.filter(t => weightOf(t) === 'key'), light: rows.filter(t => weightOf(t) === 'light') });
 
 /** Role-specific front page: decisions first, quick checks last, nothing that is not this person's. */
-export function HomeScreen({ role, name, myOwner, tasks, loading, error, onRetry, pendingCount, onOpen, onSeeAll, onSettings }: Props) {
+export function HomeScreen({ role, name, myOwner, tasks, loading, error, onRetry, pendingCount, onOpen, onReview, onSeeAll, onSettings }: Props) {
   let title = 'For you.'; let sections: Section[] = [];
   const open = tasks.filter(t => !t.completed);
   if (role === 'carla') {
     const mine = open.filter(t => t.owner === 'carla');
     const asks = open.filter(t => t.teamReview === 'Requested').sort(sortTasks);
-    // LOLI marks every proposal "Pending review" whoever the task belongs to — the decision is always Carla's — but her own
-    // tasks come first: the team's proposals get their own section further down.
-    const decide = mine.filter(t => isPendingDraft(t) && t.teamReview !== 'Requested').sort(sortTasks);
-    const team = open.filter(t => t.owner !== 'carla' && isPendingDraft(t) && t.teamReview !== 'Requested').sort(sortTasks);
-    const deliver = mine.filter(t => needsDelivery(t) && !isPendingDraft(t)).sort(sortTasks);
-    const rest = mine.filter(t => !isPendingDraft(t) && !needsDelivery(t) && t.review !== 'Changes requested' && t.teamReview !== 'Requested').sort(sortTasks);
-    const restSplit = split(rest); const decideSplit = split(decide);
-    const waiting = mine.filter(t => t.review === 'Changes requested').sort(sortTasks);
+    // All prepared responses need her decision; keep her own first, with each task shown once.
+    const decide = open.filter(t => isPendingDraft(t) && t.teamReview !== 'Requested')
+      .sort((a, b) => Number(b.owner === 'carla') - Number(a.owner === 'carla') || sortTasks(a, b));
+    const rest = mine.filter(t => !isPendingDraft(t) && !isHandedOff(t) && t.review !== 'Changes requested' && t.teamReview !== 'Requested').sort(sortTasks);
+    const waiting = open.filter(t => t.review === 'Changes requested' && t.teamReview !== 'Requested').sort(sortTasks);
+    const handed = open.filter(t => isHandedOff(t) && t.teamReview !== 'Requested').sort(sortTasks);
     sections = [
       { key: 'asks', title: 'Your team asks', hint: 'Someone wants your go-ahead before acting', rows: asks, empty: '' },
-      { key: 'decide', title: 'To decide', hint: 'Proposed responses for your own tasks, waiting for your approval', rows: decideSplit.key, empty: 'Nothing to decide.' },
-      { key: 'deliver', title: 'To deliver', hint: 'Documents or files someone needs from you', rows: deliver, empty: '' },
-      { key: 'mine', title: 'Also in your name', rows: restSplit.key, empty: 'Nothing else in your name.' },
-      { key: 'waiting', title: 'Sent back — being rewritten', hint: 'You rejected these; a new proposal will show up in "To decide"', rows: waiting, empty: '' },
-      { key: 'team', title: 'Team proposals', hint: 'Proposed responses for the team\'s tasks — they wait for your approval too', rows: team, empty: '' },
-      { key: 'light', title: 'Quick checks', hint: 'Low-stakes confirmations. Glance, tap done.', rows: [...decideSplit.light, ...restSplit.light], light: true, empty: '' },
+      { key: 'decide', title: 'Responses to review', hint: 'Read the summary and response, then approve or request changes.', rows: decide, empty: 'No responses waiting for your review.' },
+      { key: 'mine', title: 'Your other tasks', rows: rest, collapsed: true, empty: '' },
+      { key: 'waiting', title: 'Waiting for changes', hint: 'These will return for review when a new response is ready.', rows: waiting, collapsed: true, empty: '' },
+      { key: 'handed', title: 'With Barbara', hint: 'You have decided. Barbara will take it from here.', rows: handed, collapsed: true, empty: '' },
     ];
   } else if (role === 'barbara') {
     title = 'Reviewed by Carla.';
@@ -81,42 +77,56 @@ export function HomeScreen({ role, name, myOwner, tasks, loading, error, onRetry
     ];
   }
   sections = sections.filter(s => s.rows.length > 0 || s.empty);
-  const total = sections.reduce((n, s) => n + (s.struck || s.light ? 0 : s.rows.length), 0);
+  const total = new Set(sections.filter(s => !s.struck && !s.collapsed).flatMap(s => s.rows.map(t => t.id))).size;
+  const reviewCount = tasks.filter(isPendingDraft).length;
+  const ready = !loading && !error;
+
+  const sectionBody = (s: Section) => <>
+    {s.hint && s.rows.length > 0 && <div className="home-hint">{s.hint}</div>}
+    {s.key === 'decide' && reviewCount > 0 && onReview && <button type="button" className="btn btn-ink home-review" onClick={onReview}>Review responses · {reviewCount}</button>}
+    {s.rows.length === 0 && ready && <div className="home-empty">{pendingCount ? 'Your changes are waiting to sync.' : s.key === 'decide' && reviewCount > 0 ? 'Your team requests also have prepared responses to review.' : s.empty}</div>}
+    <div className="rows">
+      {s.rows.map(t => {
+        const o = person(t.owner);
+        return (
+          <button type="button" key={t.id} className={`home-card${s.struck ? ' is-struck' : ''}${s.light ? ' is-light' : ''}`} onClick={() => onOpen(t.id)}>
+            <div className="home-card-top"><span className="home-from">{t.from}</span><Avatar person={o} size={24} fs={10} /></div>
+            <div className="home-card-title">{taskTitle(t)}</div>
+            {s.key === 'asks' && t.reviewRequest && <div className="home-ask"><b>{t.requestedBy || o.short}:</b> {t.reviewRequest.split('\n')[0]}</div>}
+            {t.feedback && (s.key === 'rejected' || s.key === 'waiting') && <div className="home-reason">“{t.feedback}”</div>}
+            {!s.light && t.summary && s.key !== 'asks' && <div className="home-context">{t.summary}</div>}
+            {t.deliverable && s.key === 'mine' && <div className="home-hint">Needed: {t.deliverable}</div>}
+            <TaskTags task={t} all={tasks} compact />
+          </button>
+        );
+      })}
+    </div>
+  </>;
 
   return (
-    <div className="page scroll">
+    <div className="page scroll home-screen">
       <Logo onClick={onSettings} />
       <h1 className="h1">{title}</h1>
-      <div className="subline">{dateLine()} · {name} · {total} waiting{pendingCount ? ` · ${pendingCount} to sync` : ''}</div>
+      <div className="subline">{dateLine()} · {name}{ready ? ` · ${total} ${role === 'carla' ? 'to review' : 'waiting'}` : ''}{pendingCount ? ` · ${pendingCount} to sync` : ''}</div>
+      {loading && <div className="home-status" role="status">Updating your inbox…</div>}
       {error && !loading && (
         <div className="banner banner-error" role="alert">
           <div><b>Can't reach the Smart Inbox.</b> {error}</div>
-          {onRetry && <div className="btn btn-white btn-sm" onClick={onRetry}>Retry</div>}
+          {onRetry && <button type="button" className="btn btn-white btn-sm" onClick={onRetry}>Retry</button>}
         </div>
       )}
-      {sections.map(s => (
+      {sections.map(s => s.collapsed ? (
+        <details key={s.key} className="home-section home-secondary">
+          <summary>{s.title}<span className="home-count">{s.rows.length}</span></summary>
+          {sectionBody(s)}
+        </details>
+      ) : (
         <div key={s.key} className={`home-section${s.light ? ' is-light' : ''}`}>
           <div className="eyebrow section-label">{s.title}{s.rows.length ? ` · ${s.rows.length}` : ''}</div>
-          {s.hint && s.rows.length > 0 && <div className="home-hint">{s.hint}</div>}
-          {s.rows.length === 0 && <div className="home-empty">{s.empty}</div>}
-          <div className="rows">
-            {s.rows.map(t => {
-              const o = person(t.owner);
-              return (
-                <div key={t.id} className={`home-card${s.struck ? ' is-struck' : ''}${s.light ? ' is-light' : ''}`} onClick={() => onOpen(t.id)}>
-                  <div className="home-card-top"><span className="home-from">{t.from}{t.project && t.project !== 'Sem projeto' ? ` · ${t.project}` : ''}</span><Avatar person={o} size={20} fs={9} /></div>
-                  <div className="home-card-title">{taskTitle(t)}</div>
-                  {s.key === 'asks' && t.reviewRequest && <div className="home-ask"><b>{t.requestedBy || o.short}:</b> {t.reviewRequest.split('\n')[0]}</div>}
-                  {t.feedback && s.key === 'rejected' && <div className="home-reason">“{t.feedback}”</div>}
-                  {!s.light && t.summary && s.key !== 'asks' && <div className="home-context">{t.summary}</div>}
-                  <TaskTags task={t} all={tasks} compact />
-                </div>
-              );
-            })}
-          </div>
+          {sectionBody(s)}
         </div>
       ))}
-      {onSeeAll && <div className="home-all" onClick={onSeeAll}>See everything →</div>}
+      {onSeeAll && <button type="button" className="home-all" onClick={onSeeAll}>See everything →</button>}
     </div>
   );
 }
